@@ -116,7 +116,7 @@ export default async function MarketPage() {
             <Shield className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
             <div>
               <p className="text-[13px] font-semibold text-foreground">
-                Preparazione, non simulazione
+                Benchmark in preparazione
               </p>
               <p className="text-[12px] text-muted">
                 {intelligence.comparisonEligibleCount} polizza

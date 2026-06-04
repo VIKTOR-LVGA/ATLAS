@@ -35,7 +35,7 @@ export function LandingFinalCta() {
                 </Link>
               </div>
               <p className="mt-8 text-xs text-muted">
-                +2&apos;500 utenti si affidano ad Atlas per la chiarezza assicurativa
+                Gratuito per iniziare · nessuna carta di credito richiesta
               </p>
             </div>
           </div>

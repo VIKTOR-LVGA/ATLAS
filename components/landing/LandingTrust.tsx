@@ -8,19 +8,21 @@ import {
 const pillars = [
   {
     icon: Lock,
-    title: "Sicuro per design",
+    title: "Accesso riservato",
     description:
-      "Crittografia e architettura pensata per documenti assicurativi sensibili.",
+      "I documenti e le schede polizza restano nel tuo account, con controlli di accesso applicativi.",
   },
   {
     icon: ShieldCheck,
-    title: "Zero accessi non autorizzati",
-    description: "Solo tu accedi ai tuoi PDF e alle schede polizza del tuo account.",
+    title: "Revisione prima dell'uso",
+    description:
+      "Le bozze AI richiedono conferma: niente dati trattati come definitivi senza la tua verifica.",
   },
   {
     icon: Server,
-    title: "Ospitato in Svizzera",
-    description: "Dati trattati con standard elevati e conformità nLPD.",
+    title: "Pensato per la Svizzera",
+    description:
+      "Flussi e campi orientati alle polizze svizzere, con attenzione alla privacy dei documenti.",
   },
   {
     icon: Eye,
@@ -41,8 +43,8 @@ export function LandingTrust() {
         <div>
           <LandingSectionHeader
             eyebrow="Fiducia"
-            title="I tuoi dati. Al sicuro. In Svizzera."
-            description="Atlas non è un intermediario assicurativo. Non ti contatteranno compagnie per venderti polizze. Il prodotto serve solo a darti chiarezza."
+            title="I tuoi documenti. Il tuo portfolio."
+            description="Atlas non è un intermediario assicurativo. Non ti contatteranno compagnie per venderti polizze. Il prodotto serve a darti chiarezza su ciò che hai già."
           />
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2">

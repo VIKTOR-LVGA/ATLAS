@@ -157,9 +157,8 @@ export function SettingsDataControl({
       </div>
 
       <p className="rounded-lg border border-dashed border-border px-3 py-2 text-[11px] leading-relaxed text-muted">
-        Non offriamo certificazioni di conformità, crittografia end-to-end dichiarata o
-        hosting in Svizzera in questa schermata: qui trovi solo i controlli realmente
-        disponibili nel prodotto oggi.
+        Qui trovi solo i controlli disponibili oggi nel prodotto: esportazione dati,
+        correzioni salvate e gestione account.
       </p>
     </SectionCard>
   );

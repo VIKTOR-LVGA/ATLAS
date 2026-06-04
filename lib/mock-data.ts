@@ -1,3 +1,8 @@
+/**
+ * DEV/legacy unused — must not be used in authenticated production flows.
+ * Policy drafts must come from real PDF text extraction only (see lib/document-analysis.ts).
+ */
+
 import type {
   Alert,
   AnalysisItem,

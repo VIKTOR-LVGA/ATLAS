@@ -6,9 +6,14 @@ type ConsultingFutureModulesGridProps = {
   modules: ConsultingFutureModule[];
 };
 
+const MAX_VISIBLE_MODULES = 3;
+
 export function ConsultingFutureModulesGrid({
   modules,
 }: ConsultingFutureModulesGridProps) {
+  const visible = modules.slice(0, MAX_VISIBLE_MODULES);
+  const hiddenCount = Math.max(0, modules.length - visible.length);
+
   return (
     <SectionCard
       title="Servizi consulenza — in preparazione"
@@ -22,7 +27,7 @@ export function ConsultingFutureModulesGrid({
         </p>
       </div>
       <ul className="grid gap-2 sm:grid-cols-2">
-        {modules.map((module) => (
+        {visible.map((module) => (
           <li
             key={module.id}
             className="flex flex-col rounded-xl border border-dashed border-border bg-card-muted/30 p-3.5 opacity-90"
@@ -45,6 +50,12 @@ export function ConsultingFutureModulesGrid({
           </li>
         ))}
       </ul>
+      {hiddenCount > 0 ? (
+        <p className="text-[11px] text-muted">
+          Altri {hiddenCount} servizi in preparazione — nessuna prenotazione attiva in questa
+          versione.
+        </p>
+      ) : null}
     </SectionCard>
   );
 }

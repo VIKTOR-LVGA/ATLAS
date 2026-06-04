@@ -7,7 +7,12 @@ type MarketFutureModulesGridProps = {
   modules: MarketFutureModule[];
 };
 
+const MAX_VISIBLE_MODULES = 3;
+
 export function MarketFutureModulesGrid({ modules }: MarketFutureModulesGridProps) {
+  const visible = modules.slice(0, MAX_VISIBLE_MODULES);
+  const hiddenCount = Math.max(0, modules.length - visible.length);
+
   return (
     <SectionCard
       title="Moduli mercato — in preparazione"
@@ -21,7 +26,7 @@ export function MarketFutureModulesGrid({ modules }: MarketFutureModulesGridProp
         </p>
       </div>
       <ul className="grid gap-2 sm:grid-cols-2">
-        {modules.map((module) => (
+        {visible.map((module) => (
           <li
             key={module.id}
             className={cn(
@@ -47,6 +52,12 @@ export function MarketFutureModulesGrid({ modules }: MarketFutureModulesGridProp
           </li>
         ))}
       </ul>
+      {hiddenCount > 0 ? (
+        <p className="text-[11px] text-muted">
+          Altri {hiddenCount} moduli in preparazione — attivazione quando il servizio sarà
+          disponibile.
+        </p>
+      ) : null}
     </SectionCard>
   );
 }

@@ -1,8 +1,18 @@
 import "server-only";
 
 const LOG_PREFIX = "[atlas:policy-analysis]";
-const MAX_TEXT_PREVIEW_LENGTH = 500;
 const MAX_INTERNAL_REASON_LENGTH = 1200;
+
+const BLOCKED_LOG_KEYS = new Set([
+  "textpreview",
+  "filename",
+  "extractedtext",
+  "provider",
+  "personname",
+  "policynumber",
+  "rawresponse",
+  "reason",
+]);
 
 type LogValue = string | number | boolean | null | undefined;
 type LogDetails = Record<string, LogValue>;
@@ -13,22 +23,16 @@ function cleanLogString(value: string, maxLength: number) {
 
 function cleanLogDetails(details: LogDetails) {
   return Object.fromEntries(
-    Object.entries(details).map(([key, value]) => [
-      key,
-      typeof value === "string"
-        ? cleanLogString(
-            value,
-            key.toLowerCase().includes("preview")
-              ? MAX_TEXT_PREVIEW_LENGTH
-              : MAX_INTERNAL_REASON_LENGTH
-          )
-        : value,
-    ])
+    Object.entries(details).filter(([key]) => {
+      const normalized = key.toLowerCase();
+      return !BLOCKED_LOG_KEYS.has(normalized);
+    })
   );
 }
 
+/** For DB storage only — never log the return value. */
 export function getTextPreview(value: string) {
-  return cleanLogString(value, MAX_TEXT_PREVIEW_LENGTH);
+  return cleanLogString(value, 500);
 }
 
 export function getInternalFailureReason(value: string) {

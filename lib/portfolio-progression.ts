@@ -187,9 +187,16 @@ function buildCompleteness(
             : null,
       detail:
         policies.length > 0
-          ? `${policies.length} scheda${policies.length === 1 ? "" : "e"} create`
+          ? confirmed.length > 0
+            ? `${policies.length} scheda${policies.length === 1 ? "" : "e"} · ${confirmed.length} confermata${confirmed.length === 1 ? "" : "e"}`
+            : `${policies.length} bozza${policies.length === 1 ? "" : "e"} da confermare`
           : "In attesa di estrazione",
-      status: policies.length > 0 ? "complete" : "empty",
+      status:
+        policies.length === 0
+          ? "empty"
+          : confirmed.length > 0
+            ? "complete"
+            : "partial",
     },
     {
       id: "policies-confirmed",
@@ -418,7 +425,7 @@ const maturityLabels: Record<PortfolioMaturity, string> = {
   starting: "Configurazione in corso",
   building: "Portafoglio in crescita",
   verified: "Dati verificati",
-  advanced: "Analisi attiva",
+  advanced: "Portfolio strutturato",
 };
 
 export function computePortfolioProgression(
@@ -474,7 +481,7 @@ export function computePortfolioProgression(
   );
 
   const analysisUnlocked = confirmed.length >= 1;
-  const recommendationsUnlocked = policies.length > 0;
+  const recommendationsUnlocked = confirmed.length >= 1;
   const marketUnlocked = confirmed.length >= MARKET_UNLOCK_CONFIRMED;
 
   const unlocks: ModuleUnlock[] = [

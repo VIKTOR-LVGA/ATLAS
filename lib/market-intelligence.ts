@@ -101,10 +101,10 @@ export type MarketIntelligence = {
 };
 
 const readinessLabelText: Record<MarketReadinessLabel, string> = {
-  not_ready: "Non pronto",
+  not_ready: "Non ancora pronto",
   preparing: "In preparazione",
-  almost_ready: "Quasi pronto",
-  comparison_ready: "Pronto per analisi comparative",
+  almost_ready: "Da completare",
+  comparison_ready: "Dati idonei (benchmark in preparazione)",
 };
 
 function metricPercent(
@@ -685,13 +685,13 @@ export function computeMarketIntelligence(
     subheadline =
       "Continua a verificare i dati estratti: ogni campo completo migliora la readiness.";
   } else if (readinessLabel === "almost_ready") {
-    headline = "Quasi pronto per analisi comparative";
+    headline = "Servono ancora dati verificati";
     subheadline =
-      "Mancano pochi requisiti verificabili prima dell'attivazione dei moduli benchmark.";
+      "Completa premi, rinnovi e conferme prima di preparare confronti strutturati.";
   } else {
-    headline = "Portafoglio pronto per la fase comparativa";
+    headline = "Dati sufficienti per la preparazione";
     subheadline =
-      "I moduli benchmark restano in preparazione finché non sarà disponibile un dataset CH reale.";
+      "I confronti di mercato e i benchmark restano in preparazione: nessun risparmio stimato in questa versione.";
   }
 
   const categories = buildCategoryMap(policies);

@@ -15,9 +15,9 @@ export function LandingProductShowcase() {
     <LandingSection id="product" tone="lift" className="py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-6">
         <LandingSectionHeader
-          eyebrow="Prodotto reale"
+          eyebrow="Prodotto"
           title="Dal PDF alla struttura che puoi verificare"
-          description="Non una demo generica: Atlas riflette i flussi che usi oggi — upload, estrazione AI, raggruppamento per persona, coperture da verificare e conferma della polizza."
+          description="Upload, estrazione AI, raggruppamento per persona, coperture da verificare e conferma della polizza — nello stesso flusso che usi nell'app."
         />
 
         <div className="mt-14 grid gap-6 lg:grid-cols-2">

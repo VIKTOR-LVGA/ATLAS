@@ -7,7 +7,6 @@ import {
   getCurrentUserDocumentById,
   markCurrentUserDocumentAnalysisFailed,
   resetCurrentUserDocumentForReanalysis,
-  setCurrentUserDocumentAnalysisError,
   updateCurrentUserDocumentStatus,
 } from "@/lib/documents";
 import {
@@ -18,6 +17,8 @@ import {
   OpenAIPolicyExtractionError,
   openAIPolicyDocumentExtractor,
 } from "@/lib/openai-policy-extraction";
+import { isDevMockExtractionEnabled } from "@/lib/extraction-dev";
+import { UNREADABLE_PDF_USER_MESSAGE } from "@/lib/extraction-messages";
 import { PdfTextExtractionError } from "@/lib/pdf-text";
 import { elapsedMs, logAnalysisTiming } from "@/lib/analysis-timing";
 import {
@@ -412,26 +413,14 @@ export const mockPolicyDocumentExtractor: PolicyDocumentExtractor = {
 };
 
 function getExtractionNotes(
-  document: UserDocument,
+  _document: UserDocument,
   extraction: PolicyDocumentExtractionResult
 ) {
   if (extraction.draft.extractionNotes) {
     return extraction.draft.extractionNotes;
   }
 
-  if (extraction.usedFallback) {
-    return [
-      "Il PDF non contiene testo leggibile o la qualità non è sufficiente per un'estrazione affidabile.",
-      `Documento: ${document.fileName}.`,
-      "I valori proposti sono stime da confermare o correggere prima dell'uso.",
-    ].join("\n");
-  }
-
-  return [
-    "Bozza generata dall'analisi Atlas del PDF.",
-    `Documento sorgente: ${document.fileName}.`,
-    "Tipo, dettagli e confidenze richiedono revisione prima di essere considerati affidabili.",
-  ].join("\n");
+  return "Bozza generata dall'analisi Atlas del PDF. Verifica premio, persone e coperture prima di considerarla affidabile.";
 }
 
 function getAnalysisFailureReason(error: unknown) {
@@ -461,6 +450,12 @@ function toDocumentAnalysisError(error: unknown) {
     return error;
   }
 
+  if (error instanceof PdfTextExtractionError) {
+    return new DocumentAnalysisError(UNREADABLE_PDF_USER_MESSAGE, {
+      internalMessage: getAnalysisFailureReason(error),
+    });
+  }
+
   if (error instanceof OpenAIPolicyExtractionError) {
     return new DocumentAnalysisError(error.message, { internalMessage });
   }
@@ -483,21 +478,27 @@ async function extractPolicyWithFallback(document: UserDocument) {
     return await openAIPolicyDocumentExtractor.extract(document);
   } catch (error) {
     if (error instanceof PdfTextExtractionError) {
-      logPolicyAnalysisInfo("mock_extraction_fallback", {
+      logPolicyAnalysisInfo("pdf_text_unreadable", {
         documentId: document.id,
-        fileName: document.fileName,
-        reason: error.message,
-        extractedTextLength: error.textLength,
-        textPreview: error.textPreview,
+        textLength: error.textLength ?? 0,
       });
 
-      const fallbackExtraction = await mockPolicyDocumentExtractor.extract(document);
+      if (isDevMockExtractionEnabled()) {
+        logPolicyAnalysisInfo("dev_mock_extraction", {
+          documentId: document.id,
+          textLength: error.textLength ?? 0,
+        });
 
-      return {
-        ...fallbackExtraction,
-        fallbackReason: error.message,
-        usedFallback: true,
-      };
+        const fallbackExtraction = await mockPolicyDocumentExtractor.extract(document);
+
+        return {
+          ...fallbackExtraction,
+          fallbackReason: error.message,
+          usedFallback: true,
+        };
+      }
+
+      throw error;
     }
 
     throw error;
@@ -640,15 +641,7 @@ export async function analyzeCurrentUserDocument(
     }
 
     await updateCurrentUserDocumentStatus(processingDocument.id, "analyzed");
-
-    if (extraction.usedFallback && extraction.fallbackReason) {
-      await setCurrentUserDocumentAnalysisError(
-        processingDocument.id,
-        extraction.fallbackReason
-      );
-    } else {
-      await clearCurrentUserDocumentAnalysisError(processingDocument.id);
-    }
+    await clearCurrentUserDocumentAnalysisError(processingDocument.id);
     const dbMs = elapsedMs(dbStartedAt);
 
     logAnalysisTiming({
@@ -666,8 +659,7 @@ export async function analyzeCurrentUserDocument(
 
     logPolicyAnalysisError("document_analysis_failed", {
       documentId: processingDocument.id,
-      fileName: processingDocument.fileName,
-      reason: internalFailureReason,
+      outcome: "error",
     });
 
     logAnalysisTiming({

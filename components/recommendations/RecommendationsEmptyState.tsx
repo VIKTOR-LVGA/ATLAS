@@ -22,7 +22,7 @@ export function RecommendationsEmptyState({
       description={
         hasPortfolio
           ? "Non ci sono azioni urgenti sui dati attuali. Carica e conferma più polizze per raccomandazioni avanzate su completezza e coperture."
-          : "Carica e conferma polizze per attivare raccomandazioni deterministiche. Atlas non inventa risparmi né benchmark."
+          : "Carica e conferma polizze per attivare raccomandazioni su completezza e coperture. I benchmark di mercato sono in preparazione."
       }
       actionLabel="Carica PDF"
       actionHref="/documents"

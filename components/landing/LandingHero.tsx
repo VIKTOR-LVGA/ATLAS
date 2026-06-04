@@ -23,14 +23,14 @@ export function LandingHero() {
             <span className="block">le tue assicurazioni.</span>
             <span className="mt-1 block">
               E ti aiuta a{" "}
-              <span className="landing-hero-accent">risparmiare.</span>
+              <span className="landing-hero-accent">individuare dove ottimizzare.</span>
             </span>
           </h1>
 
           <p className="landing-hero-lead mt-6">
-            Carica le tue polizze. Atlas le legge, le organizza e le confronta con
-            il mercato svizzero per verificare se sei coperto in modo adeguato e se
-            puoi risparmiare.
+            Carica le tue polizze, organizza il portfolio e prepara i dati per future
+            valutazioni. Capisci meglio premi, coperture, rinnovi e possibili aree da
+            verificare.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -47,11 +47,11 @@ export function LandingHero() {
           <ul className="mt-9 flex flex-col gap-2.5 text-[12px] text-[var(--landing-muted)] sm:flex-row sm:flex-wrap sm:gap-x-7">
             <li className="flex items-center gap-2">
               <Shield className="h-3.5 w-3.5 text-[var(--landing-accent-bright)]" />
-              Ospitato in Svizzera
+              Pensato per documenti assicurativi
             </li>
             <li className="flex items-center gap-2">
               <Lock className="h-3.5 w-3.5 text-[var(--landing-accent-bright)]" />
-              Dati protetti in Svizzera
+              Accesso riservato al tuo account
             </li>
             <li className="flex items-center gap-2">
               <UserRound className="h-3.5 w-3.5 text-[var(--landing-accent-bright)]" />

@@ -993,7 +993,6 @@ async function callOpenAIForPolicyExtraction(
 
   logPolicyAnalysisInfo("openai_request_start", {
     documentId: document.id,
-    fileName: document.fileName,
     hasOpenAIAPIKey,
     model,
     pass,

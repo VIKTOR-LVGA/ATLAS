@@ -168,10 +168,10 @@ export function LandingDashboardPreview() {
                 <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
                   <StatCard label="Polizze totali" value="6" icon={FileText} />
                   <StatCard
-                    label="Possibile risparmio"
-                    value="CHF 842"
+                    label="Da rivedere"
+                    value="2"
                     icon={TrendingUp}
-                    accent="text-emerald-400"
+                    accent="text-amber-400"
                   />
                   <StatCard label="Avvisi importanti" value="3" icon={AlertTriangle} />
                   <StatCard
@@ -188,7 +188,7 @@ export function LandingDashboardPreview() {
                     </p>
                     <ul className="mt-2 space-y-1.5">
                       <InsightRow tone="emerald">
-                        Possibile risparmio su complementari
+                        Premio complementari da verificare
                       </InsightRow>
                       <InsightRow tone="amber">Coperture duplicate rilevate</InsightRow>
                       <InsightRow tone="indigo">

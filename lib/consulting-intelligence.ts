@@ -100,10 +100,10 @@ export type ConsultingIntelligence = {
 };
 
 const readinessLabelText: Record<ConsultingReadinessLabel, string> = {
-  not_ready: "Non pronto",
+  not_ready: "Non ancora pronto",
   incomplete: "Da completare",
-  pre_check: "Pronto per pre-check",
-  review_ready: "Pronto per revisione",
+  pre_check: "Dossier in preparazione",
+  review_ready: "Dossier ben preparato",
 };
 
 function metricPercent(
@@ -663,11 +663,11 @@ export function computeConsultingIntelligence(
     subheadline =
       "Ogni voce della checklist avvicina il portafoglio a un pre-check con revisore esterno.";
   } else if (readinessLabel === "pre_check") {
-    headline = "Pronto per un pre-check documentale";
+    headline = "Dossier in buona preparazione";
     subheadline =
-      "Il portafoglio è strutturato; risolvi le azioni prioritarie prima di richiedere revisione.";
+      "Il portafoglio è strutturato; risolvi le azioni prioritarie prima di una futura revisione.";
   } else {
-    headline = "Dossier pronto per revisione umana";
+    headline = "Dossier ben strutturato";
     subheadline =
       "Il servizio consulenza resta in preparazione — nessuna prenotazione attiva in questa versione.";
   }

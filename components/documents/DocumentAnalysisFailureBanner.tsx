@@ -1,4 +1,5 @@
 import { AlertCircle } from "lucide-react";
+import { UNREADABLE_PDF_USER_MESSAGE } from "@/lib/extraction-messages";
 
 type DocumentAnalysisFailureBannerProps = {
   analysisError?: string | null;
@@ -10,8 +11,16 @@ function getDisplayMessage(analysisError?: string | null) {
   }
 
   const trimmed = analysisError.trim();
+  const looksUnreadable =
+    /testo leggibile|illeggibile|pdf non|unreadable|poor quality|insufficient/i.test(
+      trimmed
+    );
   const looksTechnical =
     /OPENAI|API_KEY|stack|ECONN|timeout|undefined|PdfText|Error:/i.test(trimmed);
+
+  if (looksUnreadable) {
+    return UNREADABLE_PDF_USER_MESSAGE;
+  }
 
   if (looksTechnical || trimmed.length > 220) {
     return "L'ultima analisi automatica non è stata completata. Puoi riprovare o creare la polizza manualmente.";

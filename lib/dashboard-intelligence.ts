@@ -443,8 +443,10 @@ export function computeDashboardHealthScore(
     label = "Da completare";
   } else if (requiringReview.length > 0 || finalScore < 55) {
     label = "Da rivedere";
-  } else {
+  } else if (finalScore >= 55) {
     label = "Buona base";
+  } else {
+    label = "Da rivedere";
   }
 
   return {
@@ -589,7 +591,8 @@ export function buildDashboardAlerts(
         id: `orphan-doc-${document.id}`,
         title: "Documento senza polizza",
         severity: "medium",
-        explanation: `"${document.fileName}" è analizzato ma non collegato a una scheda.`,
+        explanation:
+          "Un documento analizzato non è ancora collegato a una scheda polizza.",
         documentId: document.id,
         ctaLabel: "Crea polizza",
         ctaHref: `/policies/new?documentId=${document.id}`,
@@ -601,7 +604,7 @@ export function buildDashboardAlerts(
         id: `failed-doc-${document.id}`,
         title: "Analisi documento fallita",
         severity: "high",
-        explanation: `L'analisi di "${document.fileName}" non è riuscita.`,
+        explanation: "L'analisi di un documento non è riuscita. Verifica il PDF e riprova.",
         documentId: document.id,
         ctaLabel: "Apri documento",
         ctaHref: `/documents/${document.id}`,

@@ -422,14 +422,12 @@ export async function extractReadableTextFromPdf(pdf: Buffer) {
     hasBinaryMarkers: quality.hasBinaryMarkers,
     hasUnreadablePattern: quality.hasUnreadablePattern,
     parser: "pdf2json",
-    textPreview,
   });
 
   const poorQualityReason = getPoorQualityReason(quality);
 
   if (poorQualityReason) {
     logPolicyAnalysisInfo("pdf_text_quality_rejected", {
-      reason: poorQualityReason,
       minUsefulTextLength: MIN_USEFUL_TEXT_LENGTH,
       minUsefulTokenCount: MIN_USEFUL_TOKEN_COUNT,
       minReadableCharacterRatio: MIN_READABLE_CHARACTER_RATIO,
@@ -441,7 +439,6 @@ export async function extractReadableTextFromPdf(pdf: Buffer) {
       ),
       usefulTokenCount: quality.usefulTokenCount,
       longestSuspiciousRun: quality.longestSuspiciousRun,
-      textPreview,
     });
 
     throw new PdfTextExtractionError(poorQualityReason, {

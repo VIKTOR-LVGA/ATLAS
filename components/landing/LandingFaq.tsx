@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     q: "I miei dati sono al sicuro?",
-    a: "I documenti sono crittografati e trattati con standard elevati. Atlas è pensato per la privacy svizzera (nLPD).",
+    a: "Atlas tratta i documenti con attenzione e controllo. I PDF restano nel tuo account e le bozze AI vanno confermate prima dell'uso.",
   },
 ];
 

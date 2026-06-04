@@ -13,14 +13,14 @@ export function LandingMarketComparison() {
           <div>
             <LandingSectionHeader
               eyebrow="Analisi e mercato"
-              title="Individua sprechi, duplicati e opportunità"
-              description="Atlas segnala coperture sovrapposte, elementi da verificare e confronta i premi estratti con benchmark di mercato — sempre partendo dai tuoi dati reali."
+              title="Individua sprechi, duplicati e aree da verificare"
+              description="Atlas organizza premi e coperture dai tuoi PDF e prepara il portfolio per futuri confronti. I benchmark di mercato sono in preparazione."
             />
             <ul className="mt-8 space-y-3.5 text-sm text-muted">
               {[
                 "Alert su possibili doppioni tra polizze",
                 "Coperture non assegnate evidenziate per revisione",
-                "Modulo confronto mercato integrato nell'app",
+                "Preparazione per confronti futuri nell'app",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
                   <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
@@ -70,8 +70,8 @@ export function LandingMarketComparison() {
                     />
                   </svg>
                   <div className="absolute text-center">
-                    <p className="text-2xl font-semibold text-white">CHF 842</p>
-                    <p className="text-[10px] text-muted">potenziale annuo</p>
+                    <p className="text-2xl font-semibold text-white">—</p>
+                    <p className="text-[10px] text-muted">benchmark in preparazione</p>
                   </div>
                 </div>
 

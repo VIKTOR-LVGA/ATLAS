@@ -16,7 +16,7 @@ export function LandingFooter() {
             </p>
             <p className="mt-4 inline-flex items-center gap-2 text-xs text-[var(--landing-muted)]">
               <span aria-hidden>🇨🇭</span>
-              Ospitato in Svizzera · nLPD
+              Prodotto per il mercato svizzero
             </p>
           </div>
           <div className="grid grid-cols-2 gap-10 text-sm sm:grid-cols-3">
@@ -87,7 +87,7 @@ export function LandingFooter() {
             © {new Date().getFullYear()} Atlas · Svizzera
           </p>
           <p className="text-xs text-[var(--landing-muted)] opacity-80">
-            Dati trattati in conformità con la nLPD
+            Documentazione legale in preparazione
           </p>
         </div>
       </div>

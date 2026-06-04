@@ -46,7 +46,7 @@ export function AuthShell({ children, title, subtitle }: AuthShellProps) {
               </p>
               <ul className="mt-6 space-y-2 text-[13px] text-muted-foreground">
                 {[
-                  "Hosting e dati in Svizzera",
+                  "Pensato per polizze svizzere",
                   "Nessuna vendita di polizze",
                   "Analisi trasparente e indipendente",
                 ].map((item) => (
