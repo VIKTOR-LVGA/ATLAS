@@ -14,6 +14,11 @@ import {
   sanitizePolicyDetails,
   typedPolicyTypes,
 } from "@/lib/policy-types";
+import {
+  buildExtractionKnowledgeContext,
+  formatSwissInsuranceKnowledgePromptSection,
+  isSwissKnowledgeRuleId,
+} from "@/lib/insurance-knowledge";
 import { enrichSwissPolicyExtraction } from "@/lib/swiss-extraction-enrichment";
 import {
   getSwissInsuranceKeywords,
@@ -870,7 +875,8 @@ const policyExtractionSchema = {
 function normalizeOpenAIExtraction(
   payload: OpenAIPolicyExtractionPayload,
   document: UserDocument,
-  extractedText: string
+  extractedText: string,
+  options: { knowledgeRuleIds?: string[] } = {}
 ): PolicyDocumentExtractionResult {
   const payloadDetails = getPayloadRecord(payload.details);
   const classificationContext = [
@@ -912,6 +918,13 @@ function normalizeOpenAIExtraction(
       : []) as string[]),
     providerNormalization.matchedAlias,
   ]);
+  const modelSourceHints = Array.isArray(metadata.source_hints)
+    ? (metadata.source_hints as string[]).filter(isSwissKnowledgeRuleId)
+    : [];
+  const knowledgeSourceHints = uniqueStrings([
+    ...(options.knowledgeRuleIds ?? []).filter(isSwissKnowledgeRuleId),
+    ...modelSourceHints,
+  ]).slice(0, 12);
   const detailsSource: Record<string, unknown> = {
     ...payloadDetails,
     coverage_kind: coverageKind,
@@ -930,7 +943,7 @@ function normalizeOpenAIExtraction(
       detected_languages: Array.isArray(metadata.detected_languages)
         ? metadata.detected_languages
         : [],
-      source_hints: Array.isArray(metadata.source_hints) ? metadata.source_hints : [],
+      source_hints: knowledgeSourceHints,
     },
   };
 
@@ -1023,7 +1036,8 @@ async function callOpenAIForPolicyExtraction(
   document: UserDocument,
   text: string,
   model: string,
-  pass: "fast" | "strong"
+  pass: "fast" | "strong",
+  knowledgePromptSection = ""
 ) {
   const hasOpenAIAPIKey = Boolean(process.env.OPENAI_API_KEY);
 
@@ -1055,7 +1069,13 @@ async function callOpenAIForPolicyExtraction(
             content: [
               {
                 type: "input_text",
-                text: `Filename: ${document.fileName}\n\nPDF text:\n${text}`,
+                text: [
+                  `Filename: ${document.fileName}`,
+                  knowledgePromptSection,
+                  `PDF text:\n${text}`,
+                ]
+                  .filter(Boolean)
+                  .join("\n\n"),
               },
             ],
           },
@@ -1183,9 +1203,16 @@ async function runExtractionModelPass(
   document: UserDocument,
   compactedText: string,
   model: string,
-  pass: "fast" | "strong"
+  pass: "fast" | "strong",
+  knowledgePromptSection: string
 ) {
-  return callOpenAIForPolicyExtraction(document, compactedText, model, pass);
+  return callOpenAIForPolicyExtraction(
+    document,
+    compactedText,
+    model,
+    pass,
+    knowledgePromptSection
+  );
 }
 
 async function extractPolicyPayloadWithModelStrategy(
@@ -1193,6 +1220,22 @@ async function extractPolicyPayloadWithModelStrategy(
   rawText: string
 ) {
   const compaction = compactExtractionText(rawText);
+  const knowledgeContext = buildExtractionKnowledgeContext(
+    document.fileName,
+    compaction.text
+  );
+  const knowledgePromptSection = formatSwissInsuranceKnowledgePromptSection(
+    knowledgeContext.hints
+  );
+
+  logPolicyAnalysisInfo("openai_knowledge_hints", {
+    documentId: document.id,
+    policyTypeGuess: knowledgeContext.policyTypeGuess,
+    subtypeGuess: knowledgeContext.subtypeGuess,
+    knowledgeRuleCount: knowledgeContext.ruleIds.length,
+    knowledgeRuleIds: knowledgeContext.ruleIds.join(","),
+  });
+
   const fastModel = getFastExtractionModel();
   const strongModel = getStrongExtractionModel();
   const useFastFirst = isFastModelFirstPassEnabled();
@@ -1226,7 +1269,8 @@ async function extractPolicyPayloadWithModelStrategy(
       document,
       compaction.text,
       model,
-      pass
+      pass,
+      knowledgePromptSection
     );
     openaiMs += elapsedMs(startedAt);
     return result;
@@ -1306,6 +1350,7 @@ async function extractPolicyPayloadWithModelStrategy(
     strongModel,
     fallbackMode,
     useFastFirst,
+    knowledgeRuleIds: knowledgeContext.ruleIds,
   };
 }
 
@@ -1324,10 +1369,13 @@ export const openAIPolicyDocumentExtractor: PolicyDocumentExtractor = {
       fallbackUsed,
       openaiMs,
       useFastFirst,
+      knowledgeRuleIds,
     } = await extractPolicyPayloadWithModelStrategy(document, text);
 
     const normalizeStartedAt = performance.now();
-    const normalized = normalizeOpenAIExtraction(payload, document, text);
+    const normalized = normalizeOpenAIExtraction(payload, document, text, {
+      knowledgeRuleIds,
+    });
     const enriched = enrichSwissPolicyExtraction(normalized, document, text, {
       modelUsed,
       fallbackUsed,

@@ -1,4 +1,5 @@
 import type { PolicyDocumentExtractionResult } from "@/lib/document-analysis";
+import { isSwissKnowledgeRuleId } from "@/lib/insurance-knowledge";
 import {
   normalizePolicyDetailsFreePremiums,
   refineExtractionPremiumWarnings,
@@ -152,12 +153,12 @@ function enrichExtractionMetadata(
     provider_aliases_matched: [...new Set(providerAliases)].slice(0, 8),
     detected_languages: detectDocumentLanguages(extractedText),
     source_hints: [
+      ...(Array.isArray(existing.source_hints)
+        ? (existing.source_hints as string[]).filter(isSwissKnowledgeRuleId)
+        : []),
       `filename:${fileName}`,
       `text_length:${extractedText.length}`,
-      ...(Array.isArray(existing.source_hints)
-        ? (existing.source_hints as string[])
-        : []),
-    ].slice(0, 8),
+    ].slice(0, 12),
   };
 }
 
