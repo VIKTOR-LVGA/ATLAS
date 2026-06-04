@@ -13,7 +13,6 @@ import { InfoGrid } from "@/components/ui/InfoGrid";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { RevealStagger } from "@/components/motion/RevealStagger";
 import { atlasAsideColumn, atlasMainAside, atlasMainColumn } from "@/lib/atlas-ui";
 import { getCurrentUserDocumentById } from "@/lib/documents";
@@ -171,15 +170,6 @@ export default async function DocumentDetailPage({ params }: PageProps) {
             </SectionCard>
           </aside>
         </div>
-
-        <CollapsibleSection
-          title="Dettagli tecnici storage"
-          description="Percorso interno del file"
-        >
-          <p className="break-all font-mono text-[11px] text-muted">
-            {document.filePath}
-          </p>
-        </CollapsibleSection>
       </RevealStagger>
     </PageShell>
   );

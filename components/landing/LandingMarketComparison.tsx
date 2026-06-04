@@ -1,9 +1,30 @@
 import Link from "next/link";
-import { BarChart3, Layers, TrendingDown } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, Layers } from "lucide-react";
 import {
   LandingSection,
   LandingSectionHeader,
 } from "@/components/landing/LandingSection";
+
+const readinessItems = [
+  {
+    icon: Layers,
+    label: "Dati portfolio",
+    status: "In preparazione",
+    detail: "Premi e coperture dai tuoi PDF, da confermare in revisione",
+  },
+  {
+    icon: Clock,
+    label: "Premi e rinnovi",
+    status: "Da verificare",
+    detail: "Date e importi estratti — validazione manuale consigliata",
+  },
+  {
+    icon: BarChart3,
+    label: "Categorie rilevate",
+    status: "In preparazione",
+    detail: "LAMal, complementari e altre linee dopo conferma polizze",
+  },
+] as const;
 
 export function LandingMarketComparison() {
   return (
@@ -23,7 +44,7 @@ export function LandingMarketComparison() {
                 "Preparazione per confronti futuri nell'app",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
-                  <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                   {item}
                 </li>
               ))}
@@ -38,83 +59,49 @@ export function LandingMarketComparison() {
 
           <div className="landing-preview-aura">
             <div className="landing-preview-frame p-5 sm:p-6">
-              <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted">
-                <BarChart3 className="h-3.5 w-3.5" />
-                Esempio illustrativo · dati dimostrativi
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+                Esempio illustrativo
               </p>
 
-              <div className="mt-8 flex flex-col items-center gap-8 sm:flex-row sm:items-end sm:justify-center">
-                <div className="relative flex h-40 w-40 items-center justify-center">
-                  <div
-                    className="absolute inset-0 rounded-full opacity-40 blur-2xl"
-                    style={{ background: "rgba(52, 211, 153, 0.25)" }}
-                  />
-                  <svg viewBox="0 0 120 120" className="relative h-full w-full -rotate-90">
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      fill="none"
-                      stroke="rgba(255,255,255,0.06)"
-                      strokeWidth="10"
-                    />
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      fill="none"
-                      stroke="#34d399"
-                      strokeWidth="10"
-                      strokeDasharray="210 90"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute text-center">
-                    <p className="text-2xl font-semibold text-white">—</p>
-                    <p className="text-[10px] text-muted">benchmark in preparazione</p>
-                  </div>
-                </div>
-
-                <div className="w-full max-w-[220px] space-y-4">
-                  {[
-                    { label: "Spesa attuale", width: "100%", color: "bg-indigo-500" },
-                    { label: "Media mercato", width: "78%", color: "bg-slate-600" },
-                    {
-                      label: "Target ottimizzato",
-                      width: "65%",
-                      color: "bg-emerald-500",
-                    },
-                  ].map((bar) => (
-                    <div key={bar.label}>
-                      <div className="mb-1.5 flex justify-between text-[10px] text-muted">
-                        <span>{bar.label}</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-card/[0.06]">
-                        <div
-                          className={`h-full rounded-full ${bar.color} shadow-sm`}
-                          style={{ width: bar.width }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="mt-6 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-300/90">
+                  Benchmark in preparazione
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">
+                  Nessun confronto di mercato attivo in questa anteprima — solo
+                  readiness del portfolio.
+                </p>
               </div>
 
-              <div className="mt-8 rounded-xl border border-white/[0.06] bg-card/[0.03] p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300">
-                      <Layers className="h-4 w-4" />
+              <div className="mt-5 space-y-3">
+                {readinessItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-card/[0.03] p-3.5"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300">
+                      <item.icon className="h-4 w-4" />
                     </span>
-                    <div>
-                      <p className="text-[11px] text-muted">Protezione complessiva</p>
-                      <p className="text-lg font-semibold text-white">78 / 100</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[12px] font-medium text-white">{item.label}</p>
+                        <span className="landing-badge-amber text-[9px]">
+                          {item.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-muted">
+                        {item.detail}
+                      </p>
                     </div>
                   </div>
-                  <span className="landing-badge-emerald">Buona base</span>
-                </div>
-                <p className="mt-3 text-[11px] leading-relaxed text-muted">
-                  In app, i confronti usano solo premi e coperture estratti dai tuoi PDF.
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-xl border border-white/[0.06] bg-card/[0.03] p-4">
+                <p className="text-[11px] leading-relaxed text-muted">
+                  Pronto per futuri confronti quando il portfolio sarà verificato
+                  nell&apos;app — senza medie di mercato o target ottimizzati in
+                  questa fase.
                 </p>
               </div>
             </div>

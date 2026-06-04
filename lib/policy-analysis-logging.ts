@@ -12,6 +12,7 @@ const BLOCKED_LOG_KEYS = new Set([
   "policynumber",
   "rawresponse",
   "reason",
+  "errorbody",
 ]);
 
 type LogValue = string | number | boolean | null | undefined;

@@ -151,9 +151,12 @@ export function LandingDashboardPreview() {
               </aside>
 
               <div className="min-w-0 flex-1 bg-[#0c1220] p-3 sm:p-3.5">
-                <div className="flex items-center justify-between gap-2">
+                <p className="text-[9px] font-medium uppercase tracking-wide text-slate-500">
+                  Esempio illustrativo
+                </p>
+                <div className="mt-2 flex items-center justify-between gap-2">
                   <p className="text-[12px] font-semibold text-white sm:text-[13px]">
-                    Buongiorno, Mario <span aria-hidden>👋</span>
+                    La tua dashboard
                   </p>
                   <div className="flex items-center gap-1.5">
                     <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-slate-400">
@@ -166,17 +169,17 @@ export function LandingDashboardPreview() {
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
-                  <StatCard label="Polizze totali" value="6" icon={FileText} />
+                  <StatCard label="Polizze totali" value="—" icon={FileText} />
                   <StatCard
                     label="Da rivedere"
-                    value="2"
+                    value="Da verificare"
                     icon={TrendingUp}
                     accent="text-amber-400"
                   />
-                  <StatCard label="Avvisi importanti" value="3" icon={AlertTriangle} />
+                  <StatCard label="Avvisi importanti" value="—" icon={AlertTriangle} />
                   <StatCard
                     label="Spesa annuale"
-                    value="CHF 2'984"
+                    value="Da verificare"
                     icon={Wallet}
                   />
                 </div>
@@ -188,11 +191,13 @@ export function LandingDashboardPreview() {
                     </p>
                     <ul className="mt-2 space-y-1.5">
                       <InsightRow tone="emerald">
-                        Premio complementari da verificare
+                        Premi e coperture — da confermare in revisione
                       </InsightRow>
-                      <InsightRow tone="amber">Coperture duplicate rilevate</InsightRow>
+                      <InsightRow tone="amber">
+                        Possibili duplicati — da verificare
+                      </InsightRow>
                       <InsightRow tone="indigo">
-                        Assegnazione da verificare — Anna Keller
+                        Assegnazione copertura — in revisione
                       </InsightRow>
                     </ul>
                   </div>
@@ -203,28 +208,22 @@ export function LandingDashboardPreview() {
                     </p>
                     <div className="mt-2 space-y-1">
                       <PolicyRow
-                        provider="CSS"
-                        premium="CHF 412/mese"
-                        status="Conforme"
-                        statusTone="ok"
+                        provider="Polizza sanitaria"
+                        premium="Premio da verificare"
+                        status="In revisione"
+                        statusTone="review"
                       />
                       <PolicyRow
-                        provider="Visana"
-                        premium="CHF 186/mese"
+                        provider="Copertura complementare"
+                        premium="Premio da verificare"
                         status="Da rivedere"
                         statusTone="review"
                       />
                       <PolicyRow
-                        provider="Mobiliar"
-                        premium="CHF 42/mese"
-                        status="Conforme"
+                        provider="Documento PDF"
+                        premium="Non disponibile"
+                        status="In preparazione"
                         statusTone="ok"
-                      />
-                      <PolicyRow
-                        provider="AXA"
-                        premium="CHF 18/mese"
-                        status="Duplicata"
-                        statusTone="duplicate"
                       />
                     </div>
                   </div>
@@ -234,18 +233,12 @@ export function LandingDashboardPreview() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="flex items-center gap-1.5 text-[9px] font-medium text-indigo-100">
                       <Sparkles className="h-3 w-3 text-indigo-300" />
-                      Estrazione AI · polizza salute
+                      Estrazione AI · polizza sanitaria
                     </span>
-                    <span className="landing-badge-indigo">87% confidenza</span>
+                    <span className="landing-badge-indigo">Da verificare</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {[
-                      "Mario Rossi",
-                      "Luca Bianchi",
-                      "Anna Keller",
-                      "LAMal",
-                      "Spital",
-                    ].map((tag) => (
+                    {["LAMal", "Complementare", "Spital", "Telmed"].map((tag) => (
                       <span
                         key={tag}
                         className="rounded border border-white/[0.08] bg-[#0f1524] px-1.5 py-0.5 text-[8px] text-slate-400"

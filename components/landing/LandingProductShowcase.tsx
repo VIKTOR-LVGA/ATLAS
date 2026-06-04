@@ -24,24 +24,27 @@ export function LandingProductShowcase() {
           <div className="landing-preview-aura">
             <div className="landing-preview-frame p-1">
               <div className="landing-preview-inner rounded-[14px] p-4 sm:p-5">
-                <div className="flex items-start justify-between gap-3">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
+                  Esempio illustrativo
+                </p>
+                <div className="mt-3 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
                       Dettaglio polizza
                     </p>
                     <h3 className="mt-1 text-lg font-semibold text-white">
-                      CSS · Cassa malati
+                      Polizza sanitaria
                     </h3>
-                    <p className="text-[11px] text-muted">Bozza AI · Da rivedere</p>
+                    <p className="text-[11px] text-muted">Documento PDF · Bozza AI</p>
                   </div>
                   <span className="landing-badge-amber">Da rivedere</span>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2 min-[400px]:grid-cols-3">
                   {[
-                    { label: "Persone", value: "2" },
-                    { label: "Coperture", value: "7" },
-                    { label: "Confidenza", value: "87%" },
+                    { label: "Persone", value: "—" },
+                    { label: "Coperture", value: "—" },
+                    { label: "Confidenza", value: "Da verificare" },
                   ].map((item) => (
                     <div key={item.label} className="landing-stat-chip text-center">
                       <p className="text-[9px] text-muted">{item.label}</p>
@@ -58,14 +61,14 @@ export function LandingProductShowcase() {
                   </p>
                   {[
                     {
-                      name: "Mario Rossi",
-                      coverages: "LAMal, Complementare",
-                      premium: "CHF 412",
+                      name: "Assicurato 1",
+                      coverages: "LAMal, complementare",
+                      premium: "Da verificare",
                     },
                     {
-                      name: "Anna Keller",
-                      coverages: "LAMal, Spital, Telmed",
-                      premium: "CHF 198",
+                      name: "Assicurato 2",
+                      coverages: "LAMal, spital",
+                      premium: "Da verificare",
                     },
                   ].map((person) => (
                     <div
@@ -93,7 +96,7 @@ export function LandingProductShowcase() {
                 <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
                   <p className="flex items-center gap-1.5 text-[10px] font-medium text-amber-200/90">
                     <AlertTriangle className="h-3 w-3" />
-                    1 copertura da verificare — assegna manualmente
+                    Copertura complementare — assegna manualmente
                   </p>
                 </div>
               </div>
@@ -116,10 +119,10 @@ export function LandingProductShowcase() {
                   </p>
                   <div className="mt-3 space-y-2">
                     {[
-                      { field: "Compagnia", conf: "98%", ok: true },
-                      { field: "Persone assicurate", conf: "92%", ok: true },
-                      { field: "Premio famiglia", conf: "87%", ok: true },
-                      { field: "Assegnazione copertura", conf: "64%", ok: false },
+                      { field: "Compagnia", conf: "Da verificare", ok: true },
+                      { field: "Persone assicurate", conf: "Da verificare", ok: true },
+                      { field: "Premio famiglia", conf: "Da verificare", ok: true },
+                      { field: "Assegnazione copertura", conf: "In revisione", ok: false },
                     ].map((row) => (
                       <div
                         key={row.field}

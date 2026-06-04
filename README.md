@@ -40,13 +40,16 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## AI extraction
 
-Document analysis uses OpenAI structured outputs first and automatically falls
-back to the mock extractor when a PDF does not contain enough readable text for
-non-OCR extraction.
+Document analysis uses OpenAI structured outputs on the server. Private PDFs
+are downloaded from Supabase Storage, readable text is extracted when possible,
+and successful runs save an `ai_draft` policy that requires review.
 
-The extraction flow keeps API keys on the server, downloads private PDFs from
-Supabase Storage server-side, extracts readable PDF text when possible, and
-saves the generated policy as an `ai_draft` that requires review.
+In **production**, a PDF without enough readable text for non-OCR extraction
+**fails cleanly** with a user-facing error — Atlas does **not** create mock or
+fallback policy drafts.
+
+For **local development only**, optional mock extraction is available when both
+are set: `NODE_ENV=development` and `ENABLE_DEV_MOCK_EXTRACTION=true`.
 
 ## Useful commands
 

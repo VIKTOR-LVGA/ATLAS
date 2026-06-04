@@ -41,6 +41,28 @@ const DEFAULT_CONFIDENCE_FALLBACK_THRESHOLD = 42;
 const PARTIAL_EXTRACTION_NOTE =
   "Estrazione parziale: verifica manuale consigliata.";
 
+function getSafeOpenAIHttpErrorFields(errorText: string) {
+  const trimmed = errorText.trim();
+  if (!trimmed.startsWith("{")) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      error?: { type?: unknown; code?: unknown };
+    };
+    const error = parsed.error;
+    const errorType =
+      typeof error?.type === "string" ? error.type.slice(0, 80) : undefined;
+    const errorCode =
+      typeof error?.code === "string" ? error.code.slice(0, 80) : undefined;
+
+    return { errorType, errorCode };
+  } catch {
+    return {};
+  }
+}
+
 export type ExtractionFallbackMode =
   | "hard_failure_only"
   | "quality_gate"
@@ -1061,13 +1083,15 @@ async function callOpenAIForPolicyExtraction(
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
     const internalReason = `OpenAI HTTP ${response.status}: ${errorText}`;
+    const { errorType, errorCode } = getSafeOpenAIHttpErrorFields(errorText);
 
     logPolicyAnalysisError("openai_request_failed", {
       documentId: document.id,
       httpStatus: response.status,
       requestId,
       model,
-      errorBody: errorText,
+      ...(errorType ? { errorType } : {}),
+      ...(errorCode ? { errorCode } : {}),
     });
 
     throw new OpenAIPolicyExtractionError(

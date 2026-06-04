@@ -127,7 +127,7 @@ export function ProfileSettingsPanels({ profile }: { profile: CurrentProfile | n
             </p>
             <StatusBadge
               variant={profile?.hasProfileRow ? "ok" : "processing"}
-              label={profile?.hasProfileRow ? "Account verificato" : "Profilo in attesa"}
+              label={profile?.hasProfileRow ? "Profilo attivo" : "Profilo in attesa"}
               className="mt-1"
             />
             <p className="mt-1 text-[11px] text-muted">{memberSince}</p>

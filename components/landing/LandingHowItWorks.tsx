@@ -25,9 +25,9 @@ const steps = [
   },
   {
     icon: LineChart,
-    title: "Ottimizzazione",
+    title: "Portfolio",
     description:
-      "Analizzi alert, duplicati e confronti di mercato per decisioni più consapevoli.",
+      "Leggi, organizza e revisioni le polizze; Atlas prepara il portfolio per futuri confronti quando i dati saranno verificati.",
   },
 ];
 
