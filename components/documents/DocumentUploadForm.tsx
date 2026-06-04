@@ -307,11 +307,19 @@ export function DocumentUploadForm() {
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-foreground">
-              Caricamento non riuscito
+              {state.documentId ? "Documento già presente" : "Caricamento non riuscito"}
             </p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
               {state.message}
             </p>
+            {state.documentId ? (
+              <Link
+                href={`/documents/${state.documentId}`}
+                className="mt-2 inline-flex min-h-[44px] items-center text-[11px] font-semibold text-accent"
+              >
+                Apri documento esistente
+              </Link>
+            ) : null}
           </div>
         </div>
       ) : null}

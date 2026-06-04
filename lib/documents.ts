@@ -1,17 +1,24 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { cache } from "react";
 import type { DocumentStatus, UserDocument } from "@/lib/types";
 import { DataFetchError } from "@/lib/data-fetch";
 import {
   getInternalFailureReason,
   logPolicyAnalysisError,
+  logPolicyAnalysisInfo,
 } from "@/lib/policy-analysis-logging";
+import {
+  getProcessingStaleBeforeIso,
+  isDocumentProcessingStale,
+} from "@/lib/document-analysis-state";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
+export { ANALYSIS_PROCESSING_STALE_MINUTES, isDocumentProcessingStale } from "@/lib/document-analysis-state";
+
 const documentSelect =
-  "id, file_name, file_path, file_size, mime_type, status, analysis_error, created_at, updated_at";
+  "id, file_name, file_path, file_size, mime_type, status, analysis_error, file_hash, created_at, updated_at";
 
 const POLICY_DOCUMENTS_BUCKET = "policy-documents";
 const MAX_POLICY_DOCUMENT_SIZE = 10 * 1024 * 1024;
@@ -22,6 +29,16 @@ export class DocumentUploadError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "DocumentUploadError";
+  }
+}
+
+export class DuplicateDocumentUploadError extends DocumentUploadError {
+  readonly existingDocumentId: string;
+
+  constructor(existingDocumentId: string) {
+    super("Questo documento sembra già presente nel tuo archivio.");
+    this.name = "DuplicateDocumentUploadError";
+    this.existingDocumentId = existingDocumentId;
   }
 }
 
@@ -98,7 +115,7 @@ function getStorageFileName(fileName: string) {
   return `${randomUUID()}-${safeStem || "polizza"}.pdf`;
 }
 
-async function assertPdfDocument(file: File) {
+async function readPdfBytes(file: File) {
   if (file.size === 0) {
     throw new DocumentUploadError("Seleziona un PDF da caricare.");
   }
@@ -107,11 +124,36 @@ async function assertPdfDocument(file: File) {
     throw new DocumentUploadError("Il PDF supera il limite di 10 MB.");
   }
 
-  const signature = await file.slice(0, PDF_SIGNATURE.length).text();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const signature = buffer.subarray(0, PDF_SIGNATURE.length).toString("utf8");
 
   if (signature !== PDF_SIGNATURE) {
     throw new DocumentUploadError("Atlas accetta solo file PDF validi.");
   }
+
+  return buffer;
+}
+
+function computePdfSha256(buffer: Buffer) {
+  return createHash("sha256").update(buffer).digest("hex");
+}
+
+async function findCurrentUserDocumentByHash(userId: string, fileHash: string) {
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("documents")
+    .select(documentSelect)
+    .eq("user_id", userId)
+    .eq("file_hash", fileHash)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return toUserDocument(data);
 }
 
 export const getCurrentUserDocuments = cache(async (): Promise<UserDocument[]> => {
@@ -172,7 +214,8 @@ export const getCurrentUserDocumentById = cache(
 );
 
 export async function uploadUserDocument(file: File): Promise<UserDocument> {
-  await assertPdfDocument(file);
+  const pdfBuffer = await readPdfBytes(file);
+  const fileHash = computePdfSha256(pdfBuffer);
 
   const supabase = await getSupabaseServerClient();
   const {
@@ -183,11 +226,21 @@ export async function uploadUserDocument(file: File): Promise<UserDocument> {
     throw new DocumentUploadError("Accedi di nuovo per caricare il documento.");
   }
 
+  const existingDocument = await findCurrentUserDocumentByHash(user.id, fileHash);
+
+  if (existingDocument) {
+    logPolicyAnalysisInfo("duplicate_document_detected", {
+      existingDocumentId: existingDocument.id,
+      fileHashPrefix: fileHash.slice(0, 8),
+    });
+    throw new DuplicateDocumentUploadError(existingDocument.id);
+  }
+
   const fileName = getDisplayFileName(file);
   const filePath = `${user.id}/${getStorageFileName(fileName)}`;
   const { error: storageError } = await supabase.storage
     .from(POLICY_DOCUMENTS_BUCKET)
-    .upload(filePath, file, {
+    .upload(filePath, pdfBuffer, {
       cacheControl: "3600",
       contentType: "application/pdf",
       upsert: false,
@@ -207,6 +260,7 @@ export async function uploadUserDocument(file: File): Promise<UserDocument> {
       file_path: filePath,
       file_size: file.size,
       mime_type: "application/pdf",
+      file_hash: fileHash,
     })
     .select(documentSelect)
     .single();
@@ -291,6 +345,103 @@ export async function updateCurrentUserDocumentStatus(
   }
 
   return data ? toUserDocument(data) : null;
+}
+
+export async function claimCurrentUserDocumentForAnalysis(
+  id: string
+): Promise<UserDocument> {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new DocumentManagementError("Accedi di nuovo per aggiornare il documento.");
+  }
+
+  const { data: current, error: readError } = await supabase
+    .from("documents")
+    .select(documentSelect)
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (readError || !current) {
+    throw new DocumentManagementError("Documento non trovato.");
+  }
+
+  const status = toDocumentStatus(current.status);
+  const stale = isDocumentProcessingStale(current.updated_at);
+
+  if (status === "processing" && !stale) {
+    logPolicyAnalysisInfo("analysis_already_processing", { documentId: id });
+    throw new DocumentManagementError("Analisi già in corso per questo documento.");
+  }
+
+  if (status !== "uploaded" && status !== "failed" && !(status === "processing" && stale)) {
+    throw new DocumentManagementError("Documento non disponibile per l'analisi.");
+  }
+
+  if (status === "processing" && stale) {
+    logPolicyAnalysisInfo("analysis_processing_stale_recovered", {
+      documentId: id,
+    });
+  }
+
+  const staleBefore = getProcessingStaleBeforeIso();
+  let updateQuery = supabase
+    .from("documents")
+    .update({ status: "processing" })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (status === "processing") {
+    updateQuery = updateQuery
+      .eq("status", "processing")
+      .lt("updated_at", staleBefore);
+  } else {
+    updateQuery = updateQuery.in("status", ["uploaded", "failed"]);
+  }
+
+  const { data, error } = await updateQuery.select(documentSelect).maybeSingle();
+
+  if (error || !data) {
+    logPolicyAnalysisInfo("analysis_already_processing", { documentId: id });
+    throw new DocumentManagementError("Analisi già in corso per questo documento.");
+  }
+
+  return toUserDocument(data);
+}
+
+export async function resetCurrentUserDocumentForReanalysis(id: string) {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new DocumentManagementError("Accedi di nuovo per aggiornare il documento.");
+  }
+
+  const { data, error } = await supabase
+    .from("documents")
+    .update({
+      status: "uploaded",
+      analysis_error: null,
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .eq("status", "analyzed")
+    .select(documentSelect)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new DocumentManagementError(
+      "Impossibile preparare il documento per una nuova analisi."
+    );
+  }
+
+  return toUserDocument(data);
 }
 
 export async function markCurrentUserDocumentAnalysisFailed(

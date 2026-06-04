@@ -1,13 +1,19 @@
 import "server-only";
 
 import {
+  claimCurrentUserDocumentForAnalysis,
   clearCurrentUserDocumentAnalysisError,
   DocumentManagementError,
   getCurrentUserDocumentById,
   markCurrentUserDocumentAnalysisFailed,
+  resetCurrentUserDocumentForReanalysis,
   setCurrentUserDocumentAnalysisError,
   updateCurrentUserDocumentStatus,
 } from "@/lib/documents";
+import {
+  findPolicyByDocumentId,
+  resolvePolicyForDocumentAnalysis,
+} from "@/lib/policy-duplicates";
 import {
   OpenAIPolicyExtractionError,
   openAIPolicyDocumentExtractor,
@@ -19,7 +25,12 @@ import {
   logPolicyAnalysisError,
   logPolicyAnalysisInfo,
 } from "@/lib/policy-analysis-logging";
-import { createPolicy, PolicyManagementError } from "@/lib/policies";
+import {
+  createPolicy,
+  getCurrentUserPolicyById,
+  PolicyManagementError,
+} from "@/lib/policies";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   PolicyDetails,
   PolicyInput,
@@ -493,33 +504,69 @@ async function extractPolicyWithFallback(document: UserDocument) {
   }
 }
 
+export type AnalyzeCurrentUserDocumentOptions = {
+  allowRecreate?: boolean;
+};
+
 export async function analyzeCurrentUserDocument(
   id: string,
-  extractor: PolicyDocumentExtractor = { extract: extractPolicyWithFallback }
+  extractor: PolicyDocumentExtractor = { extract: extractPolicyWithFallback },
+  options: AnalyzeCurrentUserDocumentOptions = {}
 ): Promise<UserPolicy> {
   const totalStartedAt = performance.now();
 
-  const document = await getCurrentUserDocumentById(id);
+  let document = await getCurrentUserDocumentById(id);
 
   if (!document) {
     throw new DocumentAnalysisError("Documento non trovato.");
   }
 
-  if (document.status === "processing") {
-    throw new DocumentAnalysisError("Analisi gia in corso per questo documento.");
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new DocumentAnalysisError("Accedi di nuovo per analizzare il documento.");
   }
 
-  if (document.status === "analyzed") {
-    throw new DocumentAnalysisError("Questo documento e gia stato analizzato.");
+  const linkedPolicy = await findPolicyByDocumentId(user.id, document.id);
+
+  if (document.status === "analyzed" && linkedPolicy) {
+    logPolicyAnalysisInfo("existing_policy_reused", {
+      documentId: document.id,
+      policyId: linkedPolicy.id,
+      matchKind: "document_id",
+    });
+
+    const policy = await getCurrentUserPolicyById(linkedPolicy.id);
+    if (!policy) {
+      throw new DocumentAnalysisError("Polizza collegata non trovata.");
+    }
+
+    return policy;
   }
 
-  const processingDocument = await updateCurrentUserDocumentStatus(
-    document.id,
-    "processing"
-  );
+  if (document.status === "analyzed" && !linkedPolicy) {
+    if (!options.allowRecreate) {
+      throw new DocumentAnalysisError(
+        "Questo documento è già stato analizzato. Usa «Ricrea bozza» per una nuova estrazione."
+      );
+    }
 
-  if (!processingDocument) {
-    throw new DocumentAnalysisError("Documento non disponibile per l'analisi.");
+    document = await resetCurrentUserDocumentForReanalysis(document.id);
+  }
+
+  let processingDocument: UserDocument;
+
+  try {
+    processingDocument = await claimCurrentUserDocumentForAnalysis(document.id);
+  } catch (error) {
+    if (error instanceof DocumentManagementError) {
+      throw new DocumentAnalysisError(error.message);
+    }
+
+    throw error;
   }
 
   try {
@@ -536,32 +583,61 @@ export async function analyzeCurrentUserDocument(
       ? Math.min(35, rawConfidence)
       : rawConfidence;
 
+    const policyInput: PolicyInput = {
+      documentId: processingDocument.id,
+      provider: extraction.draft.provider,
+      policyType: extraction.draft.policyType,
+      policyCategoryLabel: extraction.draft.policyCategoryLabel,
+      policyNumber: extraction.draft.policyNumber,
+      premiumAmount: extraction.draft.premiumAmount,
+      premiumFrequency: extraction.draft.premiumFrequency,
+      deductible: extraction.draft.deductible,
+      startDate: extraction.draft.startDate,
+      endDate: extraction.draft.endDate,
+      renewalDate: extraction.draft.renewalDate,
+      currency: extraction.draft.currency,
+      coverageAmount: extraction.draft.coverageAmount,
+      details: extraction.draft.details,
+      notes: extraction.draft.notes,
+    };
+
+    const duplicateResolution = await resolvePolicyForDocumentAnalysis(
+      user.id,
+      processingDocument.id,
+      policyInput
+    );
+
     const dbStartedAt = performance.now();
-    const policy = await createPolicy(
-      {
-        documentId: processingDocument.id,
-        provider: extraction.draft.provider,
-        policyType: extraction.draft.policyType,
-        policyCategoryLabel: extraction.draft.policyCategoryLabel,
-        policyNumber: extraction.draft.policyNumber,
-        premiumAmount: extraction.draft.premiumAmount,
-        premiumFrequency: extraction.draft.premiumFrequency,
-        deductible: extraction.draft.deductible,
-        startDate: extraction.draft.startDate,
-        endDate: extraction.draft.endDate,
-        renewalDate: extraction.draft.renewalDate,
-        currency: extraction.draft.currency,
-        coverageAmount: extraction.draft.coverageAmount,
-        details: extraction.draft.details,
-        notes: extraction.draft.notes,
-      },
-      {
+    let policy: UserPolicy;
+
+    if (duplicateResolution.reused) {
+      const existing = await getCurrentUserPolicyById(duplicateResolution.policyId);
+      if (!existing) {
+        throw new DocumentAnalysisError("Polizza esistente non trovata.");
+      }
+      policy = existing;
+    } else {
+      let extractionNotes = getExtractionNotes(processingDocument, extraction);
+
+      if (
+        duplicateResolution.match &&
+        !duplicateResolution.match.confident
+      ) {
+        extractionNotes = [
+          extractionNotes,
+          "Possibile duplicato rilevato: verifica se esiste già una polizza simile nel portafoglio.",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+      }
+
+      policy = await createPolicy(policyInput, {
         source: "ai_draft",
         requiresReview: true,
         extractionConfidence,
-        extractionNotes: getExtractionNotes(processingDocument, extraction),
-      }
-    );
+        extractionNotes,
+      });
+    }
 
     await updateCurrentUserDocumentStatus(processingDocument.id, "analyzed");
 

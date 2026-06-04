@@ -147,13 +147,10 @@ export default async function DocumentDetailPage({ params }: PageProps) {
                 <DocumentAnalysisForm
                   documentId={document.id}
                   documentStatus={document.status}
+                  updatedAt={document.updatedAt}
+                  linkedPolicyId={linkedPolicy?.id ?? null}
                 />
-                {linkedPolicy ? (
-                  <ActionButton href={`/policies/${linkedPolicy.id}`} variant="primary">
-                    <Sparkles className="h-4 w-4" />
-                    Apri polizza
-                  </ActionButton>
-                ) : (
+                {!linkedPolicy ? (
                   <ActionButton
                     href={`/policies/new?documentId=${document.id}`}
                     variant="secondary"
@@ -161,7 +158,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
                     <PlusCircle className="h-4 w-4" />
                     Crea polizza manuale
                   </ActionButton>
-                )}
+                ) : null}
                 <a
                   href={`/documents/${document.id}/download`}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-[13px] font-medium text-muted-foreground hover:bg-card-muted"

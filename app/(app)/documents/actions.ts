@@ -13,6 +13,7 @@ import {
   deleteCurrentUserDocument,
   DocumentManagementError,
   DocumentUploadError,
+  DuplicateDocumentUploadError,
   uploadUserDocument,
 } from "@/lib/documents";
 
@@ -49,6 +50,14 @@ export async function uploadDocumentAction(
       documentId: document.id,
     };
   } catch (error) {
+    if (error instanceof DuplicateDocumentUploadError) {
+      return {
+        status: "error",
+        message: error.message,
+        documentId: error.existingDocumentId,
+      };
+    }
+
     return {
       status: "error",
       message:
@@ -111,8 +120,12 @@ export async function analyzeDocumentAction(
   const actionStartedAt = performance.now();
   let policyId: string;
 
+  const allowRecreate = formData.get("recreate") === "1";
+
   try {
-    const policy = await analyzeCurrentUserDocument(id);
+    const policy = await analyzeCurrentUserDocument(id, undefined, {
+      allowRecreate,
+    });
     policyId = policy.id;
   } catch (error) {
     logAnalysisTiming({
