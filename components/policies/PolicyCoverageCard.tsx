@@ -1,5 +1,9 @@
 import { Shield } from "lucide-react";
 import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
+import {
+  formatCoverageDisplayLabel,
+  formatCoverageDisplaySubtitle,
+} from "@/lib/coverage-display-labels";
 import { getCoverageNetPremium } from "@/lib/policy-health-grouping";
 import { formatCHF } from "@/lib/utils";
 import type { PolicyCoverageDetail, PolicyPremiumFrequency } from "@/lib/types";
@@ -21,10 +25,10 @@ export function PolicyCoverageCard({ coverage }: { coverage: PolicyCoverageDetai
           </span>
           <div className="min-w-0">
             <p className="truncate text-[13px] font-semibold text-foreground">
-              {coverage.name}
+              {formatCoverageDisplayLabel(coverage)}
             </p>
             <p className="mt-0.5 text-[11px] text-muted">
-              {coverage.category_label ?? coverage.coverage_type ?? "Copertura"}
+              {formatCoverageDisplaySubtitle(coverage) ?? "Copertura"}
             </p>
           </div>
         </div>

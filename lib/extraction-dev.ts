@@ -8,3 +8,10 @@ export function isDevMockExtractionEnabled() {
     process.env.ENABLE_DEV_MOCK_EXTRACTION === "true"
   );
 }
+
+export function isDevExtractionSummaryEnabled() {
+  return (
+    process.env.NODE_ENV === "development" &&
+    process.env.ATLAS_DEBUG_EXTRACTION_SUMMARY === "true"
+  );
+}

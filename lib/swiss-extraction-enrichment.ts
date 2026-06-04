@@ -1,4 +1,10 @@
 import type { PolicyDocumentExtractionResult } from "@/lib/document-analysis";
+import { logExtractionSummaryDebug } from "@/lib/extraction-debug";
+import { resolveExtractionConfidence } from "@/lib/extraction-confidence";
+import {
+  syncInsuredPeopleCoverageOwnership,
+  syncPrudentAssignedCoverageOwnership,
+} from "@/lib/extraction-ownership-sync";
 import {
   enrichHealthPolicyOwnership,
   hasHealthPolicyDetailData,
@@ -49,6 +55,25 @@ function upsertFieldConfidence(
     confidence: resolvedConfidence,
     uncertain: isUncertain,
     evidence,
+  };
+}
+
+/** Missing optional field: informative confidence, not a review blocker. */
+function upsertOptionalMissingField(
+  map: PolicyFieldConfidenceMap,
+  key: PolicyFieldConfidenceKey,
+  evidence: string
+) {
+  const existing = map[key];
+  if (existing?.value !== null && existing?.value !== undefined && existing?.value !== "") {
+    return;
+  }
+
+  map[key] = {
+    value: null,
+    confidence: existing?.confidence ?? 52,
+    uncertain: false,
+    evidence: existing?.evidence ?? evidence,
   };
 }
 
@@ -150,13 +175,17 @@ function enrichFieldConfidenceMap(
     map.policy_type?.confidence ?? 82,
     `policy_type:${draft.policyType}`
   );
-  upsertFieldConfidence(
-    map,
-    "policy_number",
-    draft.policyNumber,
-    draft.policyNumber ? map.policy_number?.confidence ?? 78 : 35,
-    draft.policyNumber ? "policy_number present" : "policy_number missing"
-  );
+  if (draft.policyNumber) {
+    upsertFieldConfidence(
+      map,
+      "policy_number",
+      draft.policyNumber,
+      map.policy_number?.confidence ?? 78,
+      "policy_number present"
+    );
+  } else {
+    upsertOptionalMissingField(map, "policy_number", "policy_number not in document");
+  }
   upsertFieldConfidence(
     map,
     "premium_amount",
@@ -171,34 +200,50 @@ function enrichFieldConfidenceMap(
     map.premium_frequency?.confidence ?? 85,
     `frequency:${draft.premiumFrequency}`
   );
-  upsertFieldConfidence(
-    map,
-    "deductible",
-    draft.deductible,
-    draft.deductible === null ? 45 : map.deductible?.confidence ?? 78,
-    draft.deductible === null ? "deductible missing" : "deductible extracted"
-  );
-  upsertFieldConfidence(
-    map,
-    "start_date",
-    draft.startDate,
-    draft.startDate ? map.start_date?.confidence ?? 72 : 40,
-    draft.startDate ?? "start_date missing"
-  );
-  upsertFieldConfidence(
-    map,
-    "end_date",
-    draft.endDate,
-    draft.endDate ? map.end_date?.confidence ?? 72 : 40,
-    draft.endDate ?? "end_date missing"
-  );
-  upsertFieldConfidence(
-    map,
-    "renewal_date",
-    draft.renewalDate,
-    draft.renewalDate ? map.renewal_date?.confidence ?? 70 : 38,
-    draft.renewalDate ?? "renewal_date missing"
-  );
+  if (draft.deductible !== null && draft.deductible !== undefined) {
+    upsertFieldConfidence(
+      map,
+      "deductible",
+      draft.deductible,
+      map.deductible?.confidence ?? 78,
+      "deductible extracted"
+    );
+  } else {
+    upsertOptionalMissingField(map, "deductible", "deductible optional");
+  }
+  if (draft.startDate) {
+    upsertFieldConfidence(
+      map,
+      "start_date",
+      draft.startDate,
+      map.start_date?.confidence ?? 72,
+      draft.startDate
+    );
+  } else {
+    upsertOptionalMissingField(map, "start_date", "start_date optional");
+  }
+  if (draft.endDate) {
+    upsertFieldConfidence(
+      map,
+      "end_date",
+      draft.endDate,
+      map.end_date?.confidence ?? 72,
+      draft.endDate
+    );
+  } else {
+    upsertOptionalMissingField(map, "end_date", "end_date optional");
+  }
+  if (draft.renewalDate) {
+    upsertFieldConfidence(
+      map,
+      "renewal_date",
+      draft.renewalDate,
+      map.renewal_date?.confidence ?? 70,
+      draft.renewalDate
+    );
+  } else {
+    upsertOptionalMissingField(map, "renewal_date", "renewal_date optional");
+  }
   upsertFieldConfidence(
     map,
     "currency",
@@ -223,8 +268,9 @@ function enrichFieldConfidenceMap(
  */
 export function enrichSwissPolicyExtraction(
   result: PolicyDocumentExtractionResult,
-  document: { fileName: string },
-  extractedText: string
+  document: { fileName: string; id?: string },
+  extractedText: string,
+  options: { modelUsed?: string; fallbackUsed?: boolean } = {}
 ): PolicyDocumentExtractionResult {
   const classification = normalizeSwissPolicyClassification(
     result.draft.policyCategoryLabel ?? result.draft.policyType,
@@ -267,11 +313,15 @@ export function enrichSwissPolicyExtraction(
       null;
 
     enrichedDetails = enrichHealthPolicyOwnership(enrichedDetails, familyPremium);
+    enrichedDetails = syncPrudentAssignedCoverageOwnership(enrichedDetails);
+    enrichedDetails = syncInsuredPeopleCoverageOwnership(enrichedDetails);
   }
 
-  const overallConfidence =
-    result.draft.extractionConfidence ??
-    averageConfidence(fieldConfidence);
+  const overallConfidence = resolveExtractionConfidence(
+    result.draft.extractionConfidence ?? averageConfidence(fieldConfidence),
+    fieldConfidence,
+    result.draft
+  );
 
   const uncertainCount = Object.values(fieldConfidence).filter(
     (item) => item?.uncertain
@@ -286,7 +336,7 @@ export function enrichSwissPolicyExtraction(
         : "Campi principali coerenti con il documento.",
     ].join(" ");
 
-  return {
+  const enriched: PolicyDocumentExtractionResult = {
     ...result,
     draft: {
       ...result.draft,
@@ -303,4 +353,15 @@ export function enrichSwissPolicyExtraction(
       extractionNotes,
     },
   };
+
+  if (document.id) {
+    logExtractionSummaryDebug({
+      documentId: document.id,
+      modelUsed: options.modelUsed,
+      fallbackUsed: options.fallbackUsed,
+      result: enriched,
+    });
+  }
+
+  return enriched;
 }

@@ -82,9 +82,6 @@ export function countMissingKeyFields(policy: UserPolicy): number {
   if (policy.premiumAmount === null) {
     missing += 1;
   }
-  if (!policy.renewalDate) {
-    missing += 1;
-  }
 
   return missing;
 }

@@ -15,6 +15,10 @@ import {
 import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { SectionCard } from "@/components/ui/SectionCard";
+import {
+  formatCoverageDisplayLabel,
+  formatCoverageDisplaySubtitle,
+} from "@/lib/coverage-display-labels";
 import type { HealthPolicyGroupedView } from "@/lib/policy-health-grouping";
 import { getCoverageNetPremium } from "@/lib/policy-health-grouping";
 import type { PolicyCoverageDetail } from "@/lib/types";
@@ -50,9 +54,9 @@ function CoverageIcon({
 }
 
 function formatCoverageLine(coverage: PolicyCoverageDetail) {
-  const label = coverage.category_label ?? coverage.coverage_type ?? coverage.name;
-  const modelPart =
-    coverage.name !== label && coverage.name.length < 48 ? ` — ${coverage.name}` : "";
+  const label = formatCoverageDisplayLabel(coverage);
+  const subtitle = formatCoverageDisplaySubtitle(coverage);
+  const modelPart = subtitle ? ` — ${subtitle}` : "";
   const net = getCoverageNetPremium(coverage);
   const gross = coverage.premium_gross;
   const premium =

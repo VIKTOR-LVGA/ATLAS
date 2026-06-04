@@ -6,6 +6,7 @@ import {
   assignCoverageToInsuredPersonAction,
   type AssignCoverageActionState,
 } from "@/app/(app)/policies/actions";
+import { formatCoverageDisplayLabel } from "@/lib/coverage-display-labels";
 import { getCoverageNetPremium } from "@/lib/policy-health-grouping";
 import type { PolicyCoverageDetail } from "@/lib/types";
 import { formatCHF } from "@/lib/utils";
@@ -28,14 +29,10 @@ const initialState: AssignCoverageActionState = {
 };
 
 function formatCoverageLabel(coverage: PolicyCoverageDetail) {
-  const label = coverage.category_label ?? coverage.coverage_type ?? coverage.name;
+  const label = formatCoverageDisplayLabel(coverage);
   const net = getCoverageNetPremium(coverage);
   const premium =
     net !== null && net !== undefined ? formatCHF(net) : "—";
-
-  if (coverage.name !== label && coverage.name.length < 48) {
-    return `${label} — ${coverage.name} · ${premium}`;
-  }
 
   return `${label} · ${premium}`;
 }

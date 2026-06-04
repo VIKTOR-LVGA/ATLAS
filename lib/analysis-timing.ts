@@ -13,7 +13,9 @@ export type AnalysisTimingReport = {
   handoffMs?: number;
   usedFallback?: boolean;
   fallbackUsed?: boolean;
+  useFastFirst?: boolean;
   modelUsed?: string;
+  confidence?: number | null;
   originalTextLength?: number;
   compactedTextLength?: number;
   reductionPercent?: number;
@@ -65,6 +67,12 @@ export function logAnalysisTiming(report: AnalysisTimingReport) {
       ? `fallbackUsed=${formatTimingValue(report.fallbackUsed)}`
       : null,
     report.modelUsed ? `modelUsed=${report.modelUsed}` : null,
+    report.useFastFirst !== undefined
+      ? `useFastFirst=${formatTimingValue(report.useFastFirst)}`
+      : null,
+    report.confidence !== undefined && report.confidence !== null
+      ? `confidence=${formatTimingValue(report.confidence)}`
+      : null,
     formatTimingValue(report.originalTextLength) !== undefined
       ? `originalTextLength=${formatTimingValue(report.originalTextLength)}`
       : null,

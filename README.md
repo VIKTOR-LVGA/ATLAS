@@ -13,16 +13,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_POLICY_EXTRACTION_MODEL=gpt-5.2
-OPENAI_POLICY_EXTRACTION_MODEL_FAST=gpt-4.1-mini
 OPENAI_POLICY_EXTRACTION_MODEL_STRONG=gpt-5.2
+OPENAI_POLICY_EXTRACTION_MODEL_FAST=gpt-5.2
 OPENAI_POLICY_EXTRACTION_FALLBACK_MODE=hard_failure_only
 OPENAI_POLICY_EXTRACTION_MAX_INPUT_CHARS=32000
 OPENAI_POLICY_EXTRACTION_CONFIDENCE_FALLBACK=42
 ```
 
-`OPENAI_POLICY_EXTRACTION_MODEL` remains supported as the strong-model fallback.
-First-pass extraction uses `OPENAI_POLICY_EXTRACTION_MODEL_FAST`.
-`OPENAI_POLICY_EXTRACTION_FALLBACK_MODE` defaults to `hard_failure_only` (retry strong only on API/parse/refusal failures).
+Atlas prioritizes **extraction quality over speed**. By default, analysis uses the
+**strong** model (`OPENAI_POLICY_EXTRACTION_MODEL_STRONG` or
+`OPENAI_POLICY_EXTRACTION_MODEL`). It does **not** silently use `gpt-4.1-mini`.
+
+Optional faster (lower-accuracy) first pass — only when you explicitly opt in:
+
+```bash
+OPENAI_POLICY_EXTRACTION_USE_FAST_MODEL=true
+OPENAI_POLICY_EXTRACTION_MODEL_FAST=gpt-4.1-mini
+```
+
+`OPENAI_POLICY_EXTRACTION_FALLBACK_MODE` defaults to `hard_failure_only` (retry
+strong on API/parse/refusal failures when fast-first is enabled and models differ).
 Set `quality_gate` to also retry on sparse/low-confidence fast results.
 `OPENAI_POLICY_EXTRACTION_CONFIDENCE_FALLBACK` applies only in `quality_gate` mode.
 
@@ -50,6 +60,12 @@ fallback policy drafts.
 
 For **local development only**, optional mock extraction is available when both
 are set: `NODE_ENV=development` and `ENABLE_DEV_MOCK_EXTRACTION=true`.
+
+Redacted extraction quality summary (development only, no names/premiums/raw text):
+
+```bash
+ATLAS_DEBUG_EXTRACTION_SUMMARY=true
+```
 
 ## Useful commands
 

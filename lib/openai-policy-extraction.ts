@@ -36,7 +36,6 @@ import type {
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_STRONG_EXTRACTION_MODEL = "gpt-5.2";
-const DEFAULT_FAST_EXTRACTION_MODEL = "gpt-4.1-mini";
 const DEFAULT_CONFIDENCE_FALLBACK_THRESHOLD = 42;
 const PARTIAL_EXTRACTION_NOTE =
   "Estrazione parziale: verifica manuale consigliata.";
@@ -78,14 +77,22 @@ export type OpenAIFallbackReason =
 
 const EXTRACTION_INSTRUCTIONS = [
   "Extract Swiss insurance policy data from readable PDF text. Return JSON only per schema.",
-  "policy_type is one of health, liability, household, car, legal, other; use policy_subtype for Swiss specifics.",
-  "Do not invent policy numbers, dates, premiums, franchises, persons, or coverages; prefer null and uncertain field_confidence.",
-  "Build details.insured_people[] per person with section_id, source_order, nested coverages[], franchise, model, and premium totals.",
-  "Mirror lines in details.coverages[] with insured_person_name, insured_number, ownership_confidence, source_page, source_order.",
-  "Per line capture name, Swiss kind (LAMal/KVG, LCA/VVG, hospital, legal, travel, accident, Telmed, HMO), premium_gross, discounts[], premium_final (= premium_amount).",
-  "Put contract/family payable total in premium_amount and premium_summary.final_monthly, not as a person line premium.",
-  "Assign ownership via nearest section anchor and insured number; if unclear keep insured_person_name null and ownership_confidence low.",
-  "Populate field_confidence on important fields and extraction_metadata warnings. Dates: YYYY-MM-DD. Currency usually CHF.",
+  "You are Swiss-insurance-aware: LAMal/KVG base, LCA/VVG complementary, hospital, dental, accident, outpatient/ambulatory, Telmed/HMO, household, liability, car, legal, travel, and other products.",
+  "Use policy_type for the broad Atlas category (health, liability, household, car, legal, other). Use policy_subtype for the specific Swiss category (e.g. lamal_base, lca_complementary, hospital).",
+  "Do not invent policy numbers, dates, premiums, franchises, persons, or coverages. Use null when absent. Mark field_confidence uncertain only when evidence for that field is weak — not because review may be needed later.",
+  "Extraction confidence guidance: 80-90 when provider, policy number, insured people, contract premium, and main coverages are clearly extracted from readable text (optional fields like renewal may be missing). 65-79 when main data is present but some assignments or secondary coverages need review. 45-64 when important ambiguities remain. Below 45 when extraction is sparse or unreliable.",
+  "Do NOT lower extraction_confidence only because renewal date is missing, the policy has multiple insured people, some complementary ownership is uncertain, or human review is expected. Review-required is normal for AI drafts.",
+  "Actively use PDF structure: tables, repeated person sections, Versichertennummer, product blocks, premium rows, section headers, and source_order. Assign coverages to the correct insured person when the layout links them.",
+  "Swiss health statements (Helsana, CSS, Swica, Sanitas, Assura, Concordia, etc.):",
+  "- One details.insured_people[] entry per Versicherte/Person with name, birth_date, insured_number, section_id, source_order, franchise, model, accident_covered, nested coverages[], and person premium totals when shown.",
+  "- Separate Person 1 vs Person 2 using headers, insured numbers, and row grouping — never merge unrelated persons.",
+  "- Assign LAMal/KVG base, LCA/VVG complementari, hospital, dental, accident, outpatient, Telmed/HMO under the person block they belong to.",
+  "- For each premium/product line in details.coverages[] set name to the human-readable product label from the PDF (not an internal slug). Set coverage_type/category_label to the Swiss category token. Set insured_person_name, insured_number, ownership_confidence (75-95 when number/section/name align; low only if truly ambiguous).",
+  "- Avoid duplicating the same product in coverages[], products[], and complementary_products[] unless the PDF clearly lists distinct products. Prefer one canonical line per product in coverages[]; use products/complementary_products only for extra bundles.",
+  "- Contract/family payable total goes in premium_amount and premium_summary.final_monthly — never as a single person's line premium.",
+  "Per line: premium_gross, discounts[], premium_final (= premium_amount), franchise/deductible when shown, source_page, source_order.",
+  "Populate field_confidence on important fields with value, confidence 0-100, uncertain true only when that field's evidence is weak, and a short evidence tag. Optional missing dates: use null with moderate confidence and uncertain false.",
+  "Add extraction_metadata.matched_keywords, inferred_sections, and warnings only for real ambiguity — not routine multi-person policies. Dates: YYYY-MM-DD. Currency usually CHF.",
 ].join(" ");
 const premiumFrequencies = [
   "monthly",
@@ -147,6 +154,10 @@ function getStrongExtractionModel() {
   );
 }
 
+function isFastModelFirstPassEnabled() {
+  return process.env.OPENAI_POLICY_EXTRACTION_USE_FAST_MODEL === "true";
+}
+
 function getFastExtractionModel() {
   const configuredFast = process.env.OPENAI_POLICY_EXTRACTION_MODEL_FAST?.trim();
 
@@ -154,7 +165,7 @@ function getFastExtractionModel() {
     return configuredFast;
   }
 
-  return DEFAULT_FAST_EXTRACTION_MODEL;
+  return getStrongExtractionModel();
 }
 
 function getExtractionFallbackMode(): ExtractionFallbackMode {
@@ -1181,10 +1192,12 @@ async function extractPolicyPayloadWithModelStrategy(
   const compaction = compactExtractionText(rawText);
   const fastModel = getFastExtractionModel();
   const strongModel = getStrongExtractionModel();
-  const modelsDiffer = fastModel !== strongModel;
+  const useFastFirst = isFastModelFirstPassEnabled();
+  const primaryModel = useFastFirst ? fastModel : strongModel;
+  const primaryPass: "fast" | "strong" = useFastFirst ? "fast" : "strong";
   const fallbackMode = getExtractionFallbackMode();
   const allowStrongRetry =
-    modelsDiffer && fallbackMode !== "disabled";
+    useFastFirst && fastModel !== strongModel && fallbackMode !== "disabled";
 
   logPolicyAnalysisInfo("openai_text_compaction", {
     documentId: document.id,
@@ -1193,12 +1206,14 @@ async function extractPolicyPayloadWithModelStrategy(
     reductionPercent: compaction.reductionPercent,
     wasTruncated: compaction.wasTruncated,
     fallbackMode,
+    useFastFirst,
     fastModel,
     strongModel,
+    primaryModel,
   });
 
   let fallbackUsed = false;
-  let modelUsed = fastModel;
+  let modelUsed = primaryModel;
   let openaiMs = 0;
   let payload: OpenAIPolicyExtractionPayload;
 
@@ -1235,7 +1250,7 @@ async function extractPolicyPayloadWithModelStrategy(
   };
 
   try {
-    payload = await runPass(fastModel, "fast");
+    payload = await runPass(primaryModel, primaryPass);
   } catch (error) {
     if (fallbackMode === "disabled" || !allowStrongRetry) {
       throw error;
@@ -1244,7 +1259,7 @@ async function extractPolicyPayloadWithModelStrategy(
     payload = await retryWithStrong(getHardFailureFallbackReason(error));
   }
 
-  if (modelUsed === fastModel && fallbackMode === "quality_gate" && allowStrongRetry) {
+  if (useFastFirst && modelUsed === fastModel && fallbackMode === "quality_gate" && allowStrongRetry) {
     const qualityReason = getQualityGateFallbackReason(payload);
 
     if (qualityReason) {
@@ -1252,7 +1267,12 @@ async function extractPolicyPayloadWithModelStrategy(
     }
   }
 
-  if (modelUsed === fastModel && isPartialExtractionPayload(payload)) {
+  if (
+    useFastFirst &&
+    modelUsed === fastModel &&
+    isPartialExtractionPayload(payload) &&
+    !fallbackUsed
+  ) {
     logOpenAIFallbackSkipped({
       documentId: document.id,
       reason: "partial_extraction_allowed_as_review",
@@ -1261,6 +1281,17 @@ async function extractPolicyPayloadWithModelStrategy(
     });
     payload = annotatePartialExtractionPayload(payload);
   }
+
+  logPolicyAnalysisInfo("openai_extraction_pass_complete", {
+    documentId: document.id,
+    modelUsed,
+    fallbackUsed,
+    openaiMs,
+    useFastFirst,
+    confidence: normalizeConfidence(payload.extraction_confidence),
+    originalTextLength: compaction.originalTextLength,
+    compactedTextLength: compaction.compactedTextLength,
+  });
 
   return {
     payload,
@@ -1271,6 +1302,7 @@ async function extractPolicyPayloadWithModelStrategy(
     fastModel,
     strongModel,
     fallbackMode,
+    useFastFirst,
   };
 }
 
@@ -1288,11 +1320,15 @@ export const openAIPolicyDocumentExtractor: PolicyDocumentExtractor = {
       modelUsed,
       fallbackUsed,
       openaiMs,
+      useFastFirst,
     } = await extractPolicyPayloadWithModelStrategy(document, text);
 
     const normalizeStartedAt = performance.now();
     const normalized = normalizeOpenAIExtraction(payload, document, text);
-    const enriched = enrichSwissPolicyExtraction(normalized, document, text);
+    const enriched = enrichSwissPolicyExtraction(normalized, document, text, {
+      modelUsed,
+      fallbackUsed,
+    });
     const normalizeMs = elapsedMs(normalizeStartedAt);
 
     logAnalysisTiming({
@@ -1303,6 +1339,8 @@ export const openAIPolicyDocumentExtractor: PolicyDocumentExtractor = {
       normalizeMs,
       modelUsed,
       fallbackUsed,
+      useFastFirst,
+      confidence: enriched.draft.extractionConfidence,
       originalTextLength: compaction.originalTextLength,
       compactedTextLength: compaction.compactedTextLength,
       reductionPercent: compaction.reductionPercent,

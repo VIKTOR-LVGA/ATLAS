@@ -428,11 +428,26 @@ export function inferSwissExtractionWarnings(input: {
   if (input.draft.policyType === "health" && insuredPeople === 0 && coverages === 0) {
     warnings.push("Documento salute senza persone o coperture strutturate.");
   }
-  if (insuredPeople > 1 && input.draft.premiumAmount !== null) {
+  if (
+    insuredPeople > 1 &&
+    input.draft.premiumAmount !== null &&
+    input.draft.policyType !== "health"
+  ) {
     warnings.push("Piu persone assicurate: verificare premi individuali.");
   }
-  if (coverages > 1) {
-    warnings.push("Piu coperture nello stesso PDF: verificare eventuali doppioni.");
+  if (
+    input.draft.policyType === "health" &&
+    insuredPeople >= 2 &&
+    coverages >= 4 &&
+    input.draft.premiumAmount === null
+  ) {
+    warnings.push("Polizza famiglia: verificare il premio contratto totale.");
+  }
+  if (
+    coverages > 8 &&
+    input.draft.policyType !== "health"
+  ) {
+    warnings.push("Molte coperture nello stesso PDF: verificare eventuali doppioni.");
   }
   if (input.matchedKeywords.length < 3 && input.extractedText.length > 500) {
     warnings.push("Poche keyword svizzere riconosciute nel testo estratto.");

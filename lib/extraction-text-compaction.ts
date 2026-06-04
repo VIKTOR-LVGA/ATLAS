@@ -144,6 +144,22 @@ export function compactExtractionText(rawText: string): CompactedExtractionText 
   const originalTextLength = rawText.length;
   const normalized = collapseRepeatedLines(normalizeWhitespace(rawText));
   const maxChars = getMaxInputChars();
+
+  if (normalized.length <= maxChars) {
+    return {
+      text: normalized,
+      originalTextLength,
+      compactedTextLength: normalized.length,
+      reductionPercent:
+        originalTextLength > 0
+          ? Math.round(
+              ((originalTextLength - normalized.length) / originalTextLength) * 100
+            )
+          : 0,
+      wasTruncated: false,
+    };
+  }
+
   const capped = capTextWithPriority(normalized, maxChars);
   const compactedTextLength = capped.text.length;
   const reductionPercent =

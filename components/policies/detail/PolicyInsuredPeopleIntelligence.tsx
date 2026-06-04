@@ -13,6 +13,10 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { HealthPolicyGroupedView } from "@/lib/policy-health-grouping";
 import {
+  formatCoverageDisplayLabel,
+  formatCoverageDisplaySubtitle,
+} from "@/lib/coverage-display-labels";
+import {
   formatCoveragePremiumLabel,
   formatPersonPremium,
   getCoverageTier,
@@ -68,7 +72,8 @@ function groupCoveragesByTier(coverages: PolicyCoverageDetail[]) {
 }
 
 function PersonCoverageItem({ coverage }: { coverage: PolicyCoverageDetail }) {
-  const label = coverage.category_label ?? coverage.coverage_type ?? coverage.name;
+  const label = formatCoverageDisplayLabel(coverage);
+  const subtitle = formatCoverageDisplaySubtitle(coverage);
   const uncertain = isCoverageUncertain(coverage);
   const franchise =
     coverage.franchise ?? coverage.deductible ?? null;
@@ -84,9 +89,9 @@ function PersonCoverageItem({ coverage }: { coverage: PolicyCoverageDetail }) {
             <p className="text-[12px] font-semibold leading-snug text-foreground">
               {label}
             </p>
-            {coverage.name !== label && coverage.name.length < 56 ? (
+            {subtitle ? (
               <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                {coverage.name}
+                {subtitle}
               </p>
             ) : null}
           </div>
