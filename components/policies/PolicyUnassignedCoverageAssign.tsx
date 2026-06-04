@@ -7,9 +7,8 @@ import {
   type AssignCoverageActionState,
 } from "@/app/(app)/policies/actions";
 import { formatCoverageDisplayLabel } from "@/lib/coverage-display-labels";
-import { getCoverageNetPremium } from "@/lib/policy-health-grouping";
+import { formatCoveragePremiumDisplay } from "@/lib/coverage-premium-free";
 import type { PolicyCoverageDetail } from "@/lib/types";
-import { formatCHF } from "@/lib/utils";
 
 export type UnassignedCoverageAssignItem = {
   stableKey: string;
@@ -30,9 +29,7 @@ const initialState: AssignCoverageActionState = {
 
 function formatCoverageLabel(coverage: PolicyCoverageDetail) {
   const label = formatCoverageDisplayLabel(coverage);
-  const net = getCoverageNetPremium(coverage);
-  const premium =
-    net !== null && net !== undefined ? formatCHF(net) : "—";
+  const premium = formatCoveragePremiumDisplay(coverage);
 
   return `${label} · ${premium}`;
 }

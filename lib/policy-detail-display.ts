@@ -1,5 +1,5 @@
 import type { HealthPolicyGroupedView } from "@/lib/policy-health-grouping";
-import { getCoverageNetPremium } from "@/lib/policy-health-grouping";
+import { formatCoveragePremiumDisplay } from "@/lib/coverage-premium-free";
 import type {
   PolicyCoverageDetail,
   PolicyExtractionMetadata,
@@ -255,11 +255,16 @@ export function buildPolicyReviewCenterItems(input: {
   }
 
   for (const warning of input.warnings.slice(0, 4)) {
+    const informational =
+      warning.includes("Premio gratuito indicato") ||
+      warning.includes("importo di listino rilevato come riferimento") ||
+      warning.includes("premio gratuito nel PDF");
+
     items.push({
       id: `warning-${warning.slice(0, 24)}`,
-      title: "Avviso estrazione",
+      title: informational ? "Nota premio" : "Avviso estrazione",
       description: warning,
-      tone: "neutral",
+      tone: informational ? "neutral" : "warning",
     });
   }
 
@@ -276,12 +281,7 @@ export function buildPolicyReviewCenterItems(input: {
 }
 
 export function formatCoveragePremiumLabel(coverage: PolicyCoverageDetail): string {
-  const net = getCoverageNetPremium(coverage);
-  if (net === null || net === undefined) {
-    return "Non disponibile";
-  }
-
-  return formatCHF(net);
+  return formatCoveragePremiumDisplay(coverage);
 }
 
 export function formatPersonPremium(

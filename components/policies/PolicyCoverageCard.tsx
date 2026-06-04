@@ -4,6 +4,7 @@ import {
   formatCoverageDisplayLabel,
   formatCoverageDisplaySubtitle,
 } from "@/lib/coverage-display-labels";
+import { formatCoveragePremiumDisplay } from "@/lib/coverage-premium-free";
 import { getCoverageNetPremium } from "@/lib/policy-health-grouping";
 import { formatCHF } from "@/lib/utils";
 import type { PolicyCoverageDetail, PolicyPremiumFrequency } from "@/lib/types";
@@ -41,8 +42,9 @@ export function PolicyCoverageCard({ coverage }: { coverage: PolicyCoverageDetai
         <div>
           <dt className="text-muted">Premio</dt>
           <dd className="mt-0.5 font-medium text-foreground">
-            {getCoverageNetPremium(coverage) != null
-              ? `${formatCHF(getCoverageNetPremium(coverage) ?? 0)}${
+            {getCoverageNetPremium(coverage) != null ||
+            coverage.premium_final === 0
+              ? `${formatCoveragePremiumDisplay(coverage)}${
                   coverage.premium_frequency
                     ? ` / ${premiumFrequencyLabels[coverage.premium_frequency]}`
                     : ""

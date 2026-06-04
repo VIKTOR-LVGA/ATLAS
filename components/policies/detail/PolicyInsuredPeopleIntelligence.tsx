@@ -17,6 +17,10 @@ import {
   formatCoverageDisplaySubtitle,
 } from "@/lib/coverage-display-labels";
 import {
+  getCoveragePremiumSubtitle,
+  isExplicitFreePremiumCoverage,
+} from "@/lib/coverage-premium-free";
+import {
   formatCoveragePremiumLabel,
   formatPersonPremium,
   getCoverageTier,
@@ -109,11 +113,19 @@ function PersonCoverageItem({ coverage }: { coverage: PolicyCoverageDetail }) {
               Franchigia {formatCHF(franchise)}
             </span>
           ) : null}
-          {uncertain ? (
+          {isExplicitFreePremiumCoverage(coverage) ? (
+            <StatusBadge variant="ok" label="Premio gratuito" />
+          ) : uncertain ? (
             <ConfidenceBadge
               confidence={coverage.ownership_confidence ?? coverage.confidence}
               uncertain
             />
+          ) : null}
+          {getCoveragePremiumSubtitle(coverage) &&
+          !isExplicitFreePremiumCoverage(coverage) ? (
+            <span className="text-[10px] text-muted">
+              {getCoveragePremiumSubtitle(coverage)}
+            </span>
           ) : null}
         </div>
       </div>

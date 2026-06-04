@@ -1,4 +1,8 @@
 import type { PolicyDocumentExtractionResult } from "@/lib/document-analysis";
+import {
+  normalizePolicyDetailsFreePremiums,
+  refineExtractionPremiumWarnings,
+} from "@/lib/coverage-premium-free";
 import { logExtractionSummaryDebug } from "@/lib/extraction-debug";
 import { resolveExtractionConfidence } from "@/lib/extraction-confidence";
 import {
@@ -120,7 +124,7 @@ function enrichExtractionMetadata(
       : []) as string[]),
   ].filter((value): value is string => Boolean(value));
 
-  const warnings = inferSwissExtractionWarnings({
+  const inferredWarnings = inferSwissExtractionWarnings({
     draft,
     extractedText,
     matchedKeywords,
@@ -131,10 +135,15 @@ function enrichExtractionMetadata(
     ? (existing.warnings as string[])
     : [];
 
+  const mergedWarnings = refineExtractionPremiumWarnings(
+    [...new Set([...existingWarnings, ...inferredWarnings])],
+    (draft.details ?? {}) as PolicyDetails
+  );
+
   return {
     matched_keywords: [...new Set([...matchedKeywords, ...providerAliases])].slice(0, 32),
     inferred_sections: [...new Set(inferredSections)].slice(0, 12),
-    warnings: [...new Set([...existingWarnings, ...warnings])].slice(0, 12),
+    warnings: mergedWarnings,
     provider_raw:
       typeof existing.provider_raw === "string"
         ? existing.provider_raw
@@ -315,6 +324,20 @@ export function enrichSwissPolicyExtraction(
     enrichedDetails = enrichHealthPolicyOwnership(enrichedDetails, familyPremium);
     enrichedDetails = syncPrudentAssignedCoverageOwnership(enrichedDetails);
     enrichedDetails = syncInsuredPeopleCoverageOwnership(enrichedDetails);
+  }
+
+  enrichedDetails = normalizePolicyDetailsFreePremiums(enrichedDetails);
+  if (enrichedDetails.extraction_metadata) {
+    enrichedDetails = {
+      ...enrichedDetails,
+      extraction_metadata: {
+        ...enrichedDetails.extraction_metadata,
+        warnings: refineExtractionPremiumWarnings(
+          enrichedDetails.extraction_metadata.warnings ?? [],
+          enrichedDetails
+        ),
+      },
+    };
   }
 
   const overallConfidence = resolveExtractionConfidence(

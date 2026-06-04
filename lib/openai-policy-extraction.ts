@@ -89,8 +89,11 @@ const EXTRACTION_INSTRUCTIONS = [
   "- Assign LAMal/KVG base, LCA/VVG complementari, hospital, dental, accident, outpatient, Telmed/HMO under the person block they belong to.",
   "- For each premium/product line in details.coverages[] set name to the human-readable product label from the PDF (not an internal slug). Set coverage_type/category_label to the Swiss category token. Set insured_person_name, insured_number, ownership_confidence (75-95 when number/section/name align; low only if truly ambiguous).",
   "- Avoid duplicating the same product in coverages[], products[], and complementary_products[] unless the PDF clearly lists distinct products. Prefer one canonical line per product in coverages[]; use products/complementary_products only for extra bundles.",
-  "- Contract/family payable total goes in premium_amount and premium_summary.final_monthly — never as a single person's line premium.",
-  "Per line: premium_gross, discounts[], premium_final (= premium_amount), franchise/deductible when shown, source_page, source_order.",
+  "- Contract/family payable total goes in premium_amount and premium_summary.final_monthly — never as a single person's line premium. Family/person totals must sum effective paid premiums only, not list/reference prices.",
+  "Premium list price vs effective paid premium: if the PDF shows a list/reference price (e.g. CHF 18.80) but states premio gratuito, gratuito, 100% discount, Totale 0.00, or equivalent, set premium_gross to the list/reference amount, premium_final and premium_amount to 0, and explain in notes (e.g. Premio gratuito indicato nel PDF. Listino CHF X, premio effettivo CHF 0). Do not invent age/child/promotion reasons unless explicitly written in the PDF.",
+  "Do not treat list price plus free premium as a contradiction. Mark uncertain only when it is unclear whether the insured pays the listed amount or zero.",
+  "Do not add extraction_metadata.warnings about premium ambiguity when the document clearly states free/gratis/zero payable for that product.",
+  "Per line: premium_gross (list/reference when applicable), discounts[], premium_final (= effective payable premium), franchise/deductible when shown, source_page, source_order.",
   "Populate field_confidence on important fields with value, confidence 0-100, uncertain true only when that field's evidence is weak, and a short evidence tag. Optional missing dates: use null with moderate confidence and uncertain false.",
   "Add extraction_metadata.matched_keywords, inferred_sections, and warnings only for real ambiguity — not routine multi-person policies. Dates: YYYY-MM-DD. Currency usually CHF.",
 ].join(" ");

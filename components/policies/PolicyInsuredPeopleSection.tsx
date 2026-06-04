@@ -19,8 +19,11 @@ import {
   formatCoverageDisplayLabel,
   formatCoverageDisplaySubtitle,
 } from "@/lib/coverage-display-labels";
+import {
+  formatCoveragePremiumDisplay,
+  getCoveragePremiumSubtitle,
+} from "@/lib/coverage-premium-free";
 import type { HealthPolicyGroupedView } from "@/lib/policy-health-grouping";
-import { getCoverageNetPremium } from "@/lib/policy-health-grouping";
 import type { PolicyCoverageDetail } from "@/lib/types";
 import { formatCHF } from "@/lib/utils";
 
@@ -55,24 +58,13 @@ function CoverageIcon({
 
 function formatCoverageLine(coverage: PolicyCoverageDetail) {
   const label = formatCoverageDisplayLabel(coverage);
-  const subtitle = formatCoverageDisplaySubtitle(coverage);
-  const modelPart = subtitle ? ` — ${subtitle}` : "";
-  const net = getCoverageNetPremium(coverage);
-  const gross = coverage.premium_gross;
-  const premium =
-    net !== null && net !== undefined
-      ? formatCHF(net)
-      : "—";
-  const discountHint =
-    gross !== null &&
-    gross !== undefined &&
-    net !== null &&
-    net !== undefined &&
-    Math.abs(gross - net) > 0.01
-      ? ` (lordo ${formatCHF(gross)})`
-      : "";
+  const productSubtitle = formatCoverageDisplaySubtitle(coverage);
+  const modelPart = productSubtitle ? ` — ${productSubtitle}` : "";
+  const premium = formatCoveragePremiumDisplay(coverage);
+  const freeNote = getCoveragePremiumSubtitle(coverage);
+  const freePart = freeNote && !premium.includes("premio gratuito") ? ` · ${freeNote}` : "";
 
-  return `${label}${modelPart} — ${premium}${discountHint}`;
+  return `${label}${modelPart} — ${premium}${freePart}`;
 }
 
 function PersonCoverageRow({ coverage }: { coverage: PolicyCoverageDetail }) {
